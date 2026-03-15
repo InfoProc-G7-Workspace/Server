@@ -1,0 +1,734 @@
+/* ============================================================
+   Robot Controller — Futuristic Glassmorphism Theme
+   3-Stage Layout: Connect → Control → Sessions
+   ============================================================ */
+
+/* ── 1. Custom Properties ─────────────────────────────────── */
+:root {
+  --bg-deep:        #131b38;
+  --bg-main:        #1a2450;
+  --bg-card:        rgba(18, 28, 65, 0.4);
+  --bg-input:       rgba(255, 255, 255, 0.04);
+  --border-glass:   rgba(255, 255, 255, 0.08);
+  --border-glow:    rgba(0, 212, 255, 0.3);
+
+  --accent:         #00d4ff;
+  --accent-glow:    rgba(0, 212, 255, 0.25);
+  --accent-dim:     #0099cc;
+
+  --success:        #00e676;
+  --warning:        #ffab00;
+  --danger:         #ff5252;
+  --info:           #448aff;
+  --live:           #ff1744;
+
+  --text-primary:   #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted:     rgba(255, 255, 255, 0.35);
+
+  --shadow-glow:    0 0 20px rgba(0, 212, 255, 0.15);
+  --radius-sm:      10px;
+  --radius-md:      16px;
+  --radius-lg:      24px;
+  --radius-full:    9999px;
+
+  /* Safe area insets for iPhone notch / home indicator */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* ── 2. Reset & Base ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  background: var(--bg-deep);
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  background: linear-gradient(170deg, #151d3d 0%, #111838 40%, #131b3e 100%);
+  color: var(--text-primary);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── 3. Stage System ──────────────────────────────────────── */
+.stage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  padding-top: var(--sat);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+  transform: translateX(40px);
+}
+
+.stage.active {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* Old stage exits toward the new stage's direction */
+.stage.exit-left {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+.stage.exit-right {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+/* New stage enters from the direction it's coming from (no transition for initial position) */
+.stage.enter-from-right {
+  transition: none;
+  transform: translateX(40px);
+}
+.stage.enter-from-left {
+  transition: none;
+  transform: translateX(-40px);
+}
+
+.stage-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  padding-bottom: calc(80px + var(--sab));
+}
+
+/* ── 4. Connect Stage ─────────────────────────────────────── */
+
+/* ── Background Graphic ── */
+.connect-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+#stage-connect .stage-scroll {
+  position: relative;
+  z-index: 1;
+}
+#stage-connect .glass-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(14, 22, 52, 0.55);
+}
+
+/* Glowing orbs — kept at edges so they don't drift behind the glass card */
+.bg-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+}
+.bg-glow--cyan {
+  width: 250px; height: 250px;
+  top: -100px; right: -100px;
+  background: radial-gradient(circle, rgba(0,212,255,0.3) 0%, transparent 70%);
+  animation: glowDrift1 8s ease-in-out infinite;
+}
+.bg-glow--purple {
+  width: 220px; height: 220px;
+  bottom: 10%; left: -100px;
+  background: radial-gradient(circle, rgba(120,80,255,0.25) 0%, transparent 70%);
+  animation: glowDrift2 10s ease-in-out infinite;
+}
+.bg-glow--blue {
+  width: 180px; height: 180px;
+  bottom: -80px; right: 10%;
+  background: radial-gradient(circle, rgba(0,100,255,0.2) 0%, transparent 70%);
+  animation: glowDrift3 12s ease-in-out infinite;
+}
+
+/* Grid pattern */
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black 20%, transparent 70%);
+}
+
+/* Floating particles */
+.bg-particles {
+  position: absolute;
+  inset: 0;
+}
+.particle {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
+  animation: particleFloat linear infinite;
+}
+.particle:nth-child(1)  { left: 10%; top: 15%; animation-duration: 6s; animation-delay: 0s; width: 2px; height: 2px; }
+.particle:nth-child(2)  { left: 85%; top: 20%; animation-duration: 8s; animation-delay: -1s; }
+.particle:nth-child(3)  { left: 25%; top: 45%; animation-duration: 7s; animation-delay: -2s; width: 2px; height: 2px; }
+.particle:nth-child(4)  { left: 70%; top: 55%; animation-duration: 9s; animation-delay: -3s; }
+.particle:nth-child(5)  { left: 50%; top: 10%; animation-duration: 5s; animation-delay: -4s; width: 4px; height: 4px; opacity: 0.4; }
+.particle:nth-child(6)  { left: 15%; top: 70%; animation-duration: 10s; animation-delay: -1.5s; }
+.particle:nth-child(7)  { left: 90%; top: 60%; animation-duration: 6.5s; animation-delay: -2.5s; width: 2px; height: 2px; }
+.particle:nth-child(8)  { left: 40%; top: 80%; animation-duration: 7.5s; animation-delay: -0.5s; }
+.particle:nth-child(9)  { left: 60%; top: 30%; animation-duration: 8.5s; animation-delay: -3.5s; width: 2px; height: 2px; }
+.particle:nth-child(10) { left: 5%;  top: 50%; animation-duration: 11s;  animation-delay: -5s; }
+.particle:nth-child(11) { left: 75%; top: 85%; animation-duration: 7s; animation-delay: -6s; width: 4px; height: 4px; opacity: 0.3; }
+.particle:nth-child(12) { left: 35%; top: 25%; animation-duration: 9.5s; animation-delay: -4.5s; }
+
+/* Robot silhouette */
+.bg-robot {
+  position: absolute;
+  width: 180px;
+  height: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  opacity: 0.6;
+  animation: robotBreathe 4s ease-in-out infinite;
+}
+.scan-line {
+  animation: scanDown 3s ease-in-out infinite;
+}
+
+/* ── Connect Header ── */
+.connect-header {
+  text-align: center;
+  padding: 30px 16px 24px;
+  position: relative;
+}
+.connect-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+.connect-header .text-secondary {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.connect-status {
+  text-align: center;
+  padding: 12px;
+  font-size: 14px;
+  min-height: 42px;
+}
+.connect-status.err { color: var(--danger); }
+.connect-status.pending { color: var(--warning); }
+.connect-status.ok { color: var(--success); }
+
+/* ── 5. Glassmorphism Card ────────────────────────────────── */
+.glass-card {
+  background: rgba(14, 22, 52, 0.3);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+/* ── 6. Config Grid ───────────────────────────────────────── */
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.config-grid input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(10, 16, 40, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.config-grid input::placeholder { color: var(--text-muted); }
+.config-grid input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.config-grid .full-width { grid-column: 1 / -1; }
+
+/* ── 7. Buttons ───────────────────────────────────────────── */
+.btn-accent {
+  padding: 14px;
+  background: linear-gradient(135deg, #00d4ff, #0099ff);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-accent:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 24px var(--accent-glow);
+}
+.btn-accent.connected {
+  background: linear-gradient(135deg, #00e676, #00c853);
+}
+
+.btn-ghost {
+  padding: 8px 18px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-ghost:active { background: rgba(255, 255, 255, 0.1); }
+
+.btn-danger {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger:active:not(.btn-disabled) { background: var(--danger); color: #fff; }
+.btn-disabled { opacity: 0.3; pointer-events: none; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── 8. Control Stage — Top Bar ───────────────────────────── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+.status-chip.ok { background: rgba(0, 230, 118, 0.12); color: var(--success); }
+.status-chip.err { background: rgba(255, 82, 82, 0.12); color: var(--danger); }
+.status-chip.pending { background: rgba(255, 171, 0, 0.12); color: var(--warning); }
+
+.robot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  background: rgba(0, 230, 118, 0.1);
+  color: var(--success);
+}
+.robot-chip .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse 2s ease-in-out infinite;
+}
+.robot-chip.offline { background: rgba(255, 82, 82, 0.1); color: var(--danger); }
+.robot-chip.offline .dot { background: var(--danger); animation: none; }
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 23, 68, 0.15);
+  color: var(--live);
+  font-size: 12px;
+  font-weight: 600;
+}
+.live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ── 9. Session Info Bar ──────────────────────────────────── */
+.session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.info-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* ── 10. Video Card ───────────────────────────────────────── */
+.video-card {
+  flex-shrink: 0;
+  margin: 0 12px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 26, 0.8);
+  border: 1px solid var(--border-glass);
+}
+.video-card video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: none;
+}
+.video-card video.active { display: block; }
+.video-card video.active + .video-placeholder { display: none; }
+.video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.video-placeholder__icon { font-size: 32px; opacity: 0.3; }
+
+/* ── 11. Controls Area ────────────────────────────────────── */
+.controls-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px 0;
+  min-height: 0;
+}
+
+/* ── 12. Circular D-Pad ──────────────────────────────────── */
+.dpad-ring {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(15, 23, 60, 0.7);
+  border: 2px solid var(--border-glass);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3), 0 0 40px rgba(0, 212, 255, 0.05);
+  flex-shrink: 0;
+}
+.dpad-btn {
+  position: absolute;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.dpad-btn:active, .dpad-btn.pressed {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 24px var(--accent-glow), inset 0 0 8px rgba(255, 255, 255, 0.2);
+}
+
+.dpad-up    { top: 10px;    left: 50%;  transform: translateX(-50%); }
+.dpad-down  { bottom: 10px; left: 50%;  transform: translateX(-50%); }
+.dpad-left  { left: 10px;   top: 50%;   transform: translateY(-50%); }
+.dpad-right { right: 10px;  top: 50%;   transform: translateY(-50%); }
+
+.dpad-up:active, .dpad-up.pressed       { transform: translateX(-50%) scale(0.9); }
+.dpad-down:active, .dpad-down.pressed   { transform: translateX(-50%) scale(0.9); }
+.dpad-left:active, .dpad-left.pressed   { transform: translateY(-50%) scale(0.9); }
+.dpad-right:active, .dpad-right.pressed { transform: translateY(-50%) scale(0.9); }
+
+.dpad-center {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px; height: 56px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(255, 82, 82, 0.08);
+  border-color: rgba(255, 82, 82, 0.2);
+  color: var(--danger);
+}
+.dpad-center:active, .dpad-center.pressed {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 24px rgba(255, 82, 82, 0.3);
+  transform: translate(-50%, -50%) scale(0.9);
+}
+
+/* ── 13. Side Controls (Rotate) ──────────────────────────── */
+.side-controls { display: flex; flex-direction: column; gap: 12px; }
+.side-btn {
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.side-btn:active, .side-btn.pressed {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+  transform: scale(0.9);
+}
+
+/* ── 14. Last Command ─────────────────────────────────────── */
+.last-cmd {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+/* ── 15. Sessions Stage ───────────────────────────────────── */
+.sessions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.sessions-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.session-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ── 16. Session List ─────────────────────────────────────── */
+.session-list { margin-top: 4px; }
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  transition: background 0.2s;
+}
+.session-item--active {
+  border-left: 3px solid var(--success);
+  background: rgba(0, 230, 118, 0.04);
+}
+.session-item__info { flex: 1; min-width: 0; }
+.session-item__id { font-weight: 600; font-size: 14px; color: var(--text-primary); }
+.session-item__meta { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+.session-item__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+/* ── 17. Status Badges ────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.badge-pending    { background: rgba(255, 171, 0, 0.15); color: var(--warning); }
+.badge-processing { background: rgba(68, 138, 255, 0.15); color: var(--info); }
+.badge-ready      { background: rgba(0, 230, 118, 0.15); color: var(--success); }
+
+/* ── 18. Session Detail ───────────────────────────────────── */
+.session-detail { display: none; margin-top: 12px; }
+.session-detail.visible { display: block; animation: fadeIn 0.25s ease; }
+.session-detail__card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.session-detail__card h4 { margin: 0 0 12px; color: var(--accent); font-size: 15px; font-weight: 600; }
+.session-detail__card p { margin: 6px 0; font-size: 13px; color: var(--text-secondary); }
+.session-detail__card p strong { color: var(--text-primary); font-weight: 500; }
+.session-detail__card a { color: var(--accent); text-decoration: none; }
+
+/* ── 19. Bottom Navigation ────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  background: linear-gradient(to bottom, rgba(19, 27, 56, 0) 0%, rgba(19, 27, 56, 0.95) 30%);
+  padding: 8px 20px calc(8px + var(--sab));
+  z-index: 100;
+  pointer-events: none;
+}
+.nav-track {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 340px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  pointer-events: auto;
+}
+.nav-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(33.333% - 3px);
+  height: calc(100% - 8px);
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: var(--radius-full);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.25s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  z-index: 1;
+}
+.nav-icon {
+  width: 20px;
+  height: 20px;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-btn:active:not(.nav-btn--locked) { color: var(--accent); }
+.nav-btn--locked {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* ── 20. Utility Classes ──────────────────────────────────── */
+.hidden { display: none !important; }
+.text-muted { color: var(--text-muted); font-size: 13px; }
+.text-secondary { color: var(--text-secondary); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
+.text-success { color: var(--success); }
+
+/* ── 21. Animations ───────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes glowDrift1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-20px, 30px); }
+}
+@keyframes glowDrift2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(25px, -20px); }
+}
+@keyframes glowDrift3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-15px, -25px); }
+}
+@keyframes particleFloat {
+  0%   { transform: translateY(0) scale(1);   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-120px) scale(0.5); opacity: 0; }
+}
+@keyframes robotBreathe {
+  0%, 100% { transform: translate(-50%, -55%) scale(1); }
+  50%      { transform: translate(-50%, -55%) scale(1.02); }
+}
+@keyframes scanDown {
+  0%   { transform: translateY(0);   opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(80px); opacity: 0; }
+}
+
+/* ── 22. Scrollbar ────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }

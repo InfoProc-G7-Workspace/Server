@@ -1,0 +1,21 @@
+{
+  "name": "robot-cloud-server",
+  "version": "1.0.0",
+  "description": "Robot Cloud Controller - Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "@aws-sdk/client-kinesis-video": "^3.700.0",
+    "@aws-sdk/client-kinesis-video-signaling": "^3.700.0",
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0"
+  }
+}

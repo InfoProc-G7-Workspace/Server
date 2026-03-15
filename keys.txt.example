@@ -1,0 +1,18 @@
+# Robot Cloud Controller — Configuration
+# Copy this file to ~/keys.txt and fill in your values
+# Format: KEY=VALUE (no quotes needed)
+
+# ─── AWS Credentials ───────────────────────────────────────
+AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY_HERE
+AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY_HERE
+AWS_REGION=eu-west-2
+
+# ─── AWS IoT Core ──────────────────────────────────────────
+IOT_ENDPOINT=YOUR_IOT_ENDPOINT.iot.eu-west-2.amazonaws.com
+
+# ─── S3 Buckets ────────────────────────────────────────────
+IMAGE_BUCKET=robot-raw-images-eu-west-2
+SCENE_BUCKET=robot-3d-scenes-eu-west-2
+
+# ─── Server ────────────────────────────────────────────────
+PORT=3000
