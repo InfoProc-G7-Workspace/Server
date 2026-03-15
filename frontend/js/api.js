@@ -13,8 +13,9 @@ var API = (function () {
 
   return {
     // MQTT
-    getMqttSignedUrl: function () {
-      return json('/mqtt/signed-url');
+    getMqttSignedUrl: function (username) {
+      var qs = username ? '?username=' + encodeURIComponent(username) : '';
+      return json('/mqtt/signed-url' + qs);
     },
 
     // Robots

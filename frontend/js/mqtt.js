@@ -17,7 +17,7 @@ window.connectMqtt = async function () {
 
   try {
     // Get SigV4-signed WSS URL from backend
-    var data = await API.getMqttSignedUrl();
+    var data = await API.getMqttSignedUrl(AppState.currentUsername);
 
     AppState.mqttClient = mqtt.connect(data.url, {
       clientId: 'phone-controller-' + Math.floor(Math.random() * 10000),
