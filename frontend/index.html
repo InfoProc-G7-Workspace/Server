@@ -54,14 +54,23 @@
   <div class="stage-scroll">
     <div class="connect-header">
       <h1>Robot Controller</h1>
-      <p class="text-secondary">Enter your display name to get started</p>
+      <p id="connect-subtitle" class="text-secondary">Enter your display name to get started</p>
     </div>
 
-    <div class="glass-card">
+    <div id="login-card" class="glass-card">
       <div class="config-grid">
         <input id="cfg-username" placeholder="Your display name" class="full-width">
-        <button id="connect-btn" class="btn-accent full-width">Connect</button>
+        <button id="login-btn" class="btn-accent">Login</button>
+        <button id="create-user-btn" class="btn-ghost">Create User</button>
       </div>
+    </div>
+
+    <div id="logged-in-card" class="glass-card hidden">
+      <div class="logged-in-info">
+        <p class="text-secondary">Logged in as</p>
+        <p id="logged-in-username" class="logged-in-name">--</p>
+      </div>
+      <button id="logout-btn" class="btn-danger full-width">Logout</button>
     </div>
 
     <div id="connect-status" class="connect-status"></div>
@@ -94,6 +103,14 @@
       <span class="info-label">Session</span>
       <span id="info-session">--</span>
     </div>
+  </div>
+
+  <!-- Recording control -->
+  <div class="record-area">
+    <button id="btn-record" class="btn-record" disabled>
+      <span class="record-dot"></span>
+      <span id="record-label">Record</span>
+    </button>
   </div>
 
   <!-- Video feed -->
@@ -141,7 +158,6 @@
     <div id="session-list" class="session-list">
       <p class="text-muted" style="padding:8px;">Tap Refresh to load sessions.</p>
     </div>
-    <div id="session-detail" class="session-detail"></div>
   </div>
 </div>
 
@@ -178,9 +194,14 @@
     lastRobotHeartbeat: null,
     currentSessionData: null,
     currentUsername: null,
+    currentUserId: null,
+    currentUserRole: null,
+    isRecording: false,
     sessionCreating: false,
     sessionManuallyEnded: false,
     activeKeys: new Set(),
+    sessionPollTimer: null,
+    viewingSessionId: null,
   };
 </script>
 

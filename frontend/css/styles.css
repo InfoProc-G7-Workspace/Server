@@ -239,6 +239,25 @@ body {
 .connect-status.pending { color: var(--warning); }
 .connect-status.ok { color: var(--success); }
 
+/* ── Logged-In Card ── */
+.logged-in-info {
+  text-align: center;
+  padding: 12px 0 16px;
+}
+.logged-in-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 4px;
+}
+#logged-in-card .btn-danger {
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
 /* ── 5. Glassmorphism Card ────────────────────────────────── */
 .glass-card {
   background: rgba(14, 22, 52, 0.3);
@@ -413,7 +432,8 @@ body {
 
 /* ── 10. Video Card ───────────────────────────────────────── */
 .video-card {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-height: 0;
   margin: 0 12px;
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -431,8 +451,14 @@ body {
   object-fit: contain;
   display: none;
 }
+.video-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .video-card video.active { display: block; }
 .video-card video.active + .video-placeholder { display: none; }
+.video-card img.active + .video-placeholder { display: none; }
 .video-placeholder {
   display: flex;
   flex-direction: column;
@@ -569,12 +595,12 @@ body {
 
 /* ── 16. Session List ─────────────────────────────────────── */
 .session-list { margin-top: 4px; }
+.session-item-wrapper { margin-bottom: 8px; }
 .session-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 14px;
-  margin-bottom: 8px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
@@ -602,9 +628,18 @@ body {
 .badge-processing { background: rgba(68, 138, 255, 0.15); color: var(--info); }
 .badge-ready      { background: rgba(0, 230, 118, 0.15); color: var(--success); }
 
-/* ── 18. Session Detail ───────────────────────────────────── */
-.session-detail { display: none; margin-top: 12px; }
-.session-detail.visible { display: block; animation: fadeIn 0.25s ease; }
+/* ── 18. Session Detail (Inline Accordion) ───────────────── */
+.session-inline-detail {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+  opacity: 0;
+}
+.session-inline-detail.expanded {
+  max-height: 800px;
+  opacity: 1;
+  margin-top: 4px;
+}
 .session-detail__card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-glass);
@@ -728,7 +763,212 @@ body {
   100% { transform: translateY(80px); opacity: 0; }
 }
 
-/* ── 22. Scrollbar ────────────────────────────────────────── */
+/* ── 22. Record Button ───────────────────────────────────── */
+.record-area {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px;
+  flex-shrink: 0;
+}
+
+.btn-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 28px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-record:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.btn-record .record-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--danger);
+  transition: all 0.3s ease;
+}
+
+.btn-record.recording {
+  background: rgba(255, 23, 68, 0.15);
+  border-color: rgba(255, 23, 68, 0.4);
+  box-shadow: 0 0 20px rgba(255, 23, 68, 0.2);
+}
+
+.btn-record.recording .record-dot {
+  animation: pulse 1s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--live);
+}
+
+/* ── 23. Gaussian Viewer ─────────────────────────────────── */
+.gaussian-viewer {
+  margin-top: 12px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-glass);
+}
+
+.gaussian-viewer iframe {
+  width: 100%;
+  height: 300px;
+  border: none;
+}
+
+.gaussian-viewer p {
+  padding: 8px 12px;
+  margin: 0;
+}
+
+/* ── 24. Additional Badges ───────────────────────────────── */
+.badge-complete { background: rgba(0, 230, 118, 0.15); color: var(--success); }
+
+/* ── 25. Scrollbar ────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+
+/* ── 26. Tablet Adjustments (768px–1023px) ───────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nav-track { max-width: 400px; }
+  .video-card { margin: 0 24px; }
+
+  #stage-connect .stage-scroll {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #stage-connect .glass-card { max-width: 440px; width: 100%; }
+  #stage-sessions .stage-scroll { max-width: 700px; margin: 0 auto; }
+}
+
+/* ── 27. Desktop Layout (1024px+) ────────────────────────── */
+@media (min-width: 1024px) {
+
+  /* ── Control Stage: Grid Layout ── */
+  #stage-control {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 1fr auto;
+    grid-template-areas:
+      "topbar"
+      "session"
+      "record"
+      "video"
+      "lastcmd";
+    padding-bottom: 64px;
+  }
+  #stage-control > .top-bar       { grid-area: topbar; }
+  #stage-control > .session-bar   { grid-area: session; }
+  #stage-control > .record-area   { grid-area: record; }
+  #stage-control > .video-card    { grid-area: video; }
+  #stage-control > .controls-area { display: none; }
+  #stage-control > .last-cmd      { grid-area: lastcmd; }
+
+  /* ── Top Bar ── */
+  .top-bar {
+    padding: 12px 24px 4px;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+
+  /* ── Session Bar ── */
+  .session-bar {
+    padding: 0 24px 8px;
+    justify-content: flex-start;
+  }
+
+  /* ── Video Card: fill remaining space ── */
+  .video-card {
+    aspect-ratio: unset;
+    margin: 8px 24px;
+    align-self: stretch;
+    min-height: 400px;
+  }
+
+  /* ── Last Command: more prominent ── */
+  .last-cmd {
+    padding: 10px 24px;
+    text-align: left;
+    font-size: 14px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border-glass);
+  }
+
+  /* ── Bottom Nav: wider, horizontal labels ── */
+  .bottom-nav {
+    background: linear-gradient(to bottom, rgba(19, 27, 56, 0) 0%, rgba(19, 27, 56, 0.98) 20%);
+    padding: 10px 40px calc(10px + var(--sab));
+  }
+  .nav-track { max-width: 480px; }
+  .nav-btn {
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    padding: 10px 0;
+  }
+  .nav-label { font-size: 13px; }
+
+  /* ── Desktop Hover States ── */
+  .btn-record:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .nav-btn:hover:not(.nav-btn--locked) {
+    color: var(--accent);
+  }
+
+  /* ── Keyboard Focus Indicators ── */
+  .btn-record:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* ── User Select for info text ── */
+  .top-bar,
+  .session-bar,
+  .last-cmd {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* ── Touch action override ── */
+  body { touch-action: auto; }
+
+  /* ── Connect Stage: center card ── */
+  #stage-connect .stage-scroll {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #stage-connect .glass-card { max-width: 440px; width: 100%; }
+  .connect-header { max-width: 440px; margin: 0 auto; }
+
+  /* ── Sessions Stage: fill page ── */
+  #stage-sessions .stage-scroll {
+    padding: 24px 48px calc(80px + var(--sab));
+  }
+  .sessions-header {
+    padding: 20px 0;
+  }
+  .sessions-header h2 {
+    font-size: 26px;
+  }
+  .session-item {
+    padding: 18px 20px;
+  }
+  .session-item__id { font-size: 15px; }
+  .session-item__meta { font-size: 13px; }
+}

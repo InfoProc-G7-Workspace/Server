@@ -4,7 +4,21 @@
 var API = (function () {
   var BASE = '/api';
 
+  function authHeaders() {
+    var headers = { 'Content-Type': 'application/json' };
+    if (window.AppState && AppState.currentUserId) {
+      headers['x-user-id'] = AppState.currentUserId;
+    }
+    if (window.AppState && AppState.currentUserRole) {
+      headers['x-user-role'] = AppState.currentUserRole;
+    }
+    return headers;
+  }
+
   async function json(url, opts) {
+    opts = opts || {};
+    // Merge auth headers into every request
+    opts.headers = Object.assign({}, authHeaders(), opts.headers || {});
     var res = await fetch(BASE + url, opts);
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
@@ -12,6 +26,26 @@ var API = (function () {
   }
 
   return {
+    // Users
+    login: function (displayName) {
+      return json('/users/login', {
+        method: 'POST',
+        body: JSON.stringify({ display_name: displayName }),
+      });
+    },
+    register: function (displayName) {
+      return json('/users/register', {
+        method: 'POST',
+        body: JSON.stringify({ display_name: displayName }),
+      });
+    },
+    listUsers: function () {
+      return json('/users');
+    },
+    getUser: function (userId) {
+      return json('/users/' + encodeURIComponent(userId));
+    },
+
     // MQTT
     getMqttSignedUrl: function (username) {
       var qs = username ? '?username=' + encodeURIComponent(username) : '';
@@ -28,15 +62,13 @@ var API = (function () {
     createRobot: function (params) {
       return json('/robots', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
       });
     },
 
     // Sessions
-    listSessions: function (robotId) {
-      var qs = robotId ? '?robot_id=' + encodeURIComponent(robotId) : '';
-      return json('/sessions' + qs);
+    listSessions: function () {
+      return json('/sessions');
     },
     getSession: function (sessionId) {
       return json('/sessions/' + encodeURIComponent(sessionId));
@@ -44,7 +76,6 @@ var API = (function () {
     createSession: function (robotId, userId) {
       return json('/sessions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ robot_id: robotId, user_id: userId }),
       });
     },
@@ -60,6 +91,14 @@ var API = (function () {
     },
     getSceneUrl: function (key) {
       return json('/stream/scene-url?key=' + encodeURIComponent(key));
+    },
+
+    // Frame saving during recording
+    saveFrame: function (sessionId, userId, frameData) {
+      return json('/stream/save-frame', {
+        method: 'POST',
+        body: JSON.stringify({ session_id: sessionId, user_id: userId, frame_data: frameData }),
+      });
     },
 
     // KVS

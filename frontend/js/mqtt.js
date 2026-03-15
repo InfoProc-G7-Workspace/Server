@@ -6,6 +6,19 @@ window.setStatus = function (text, cls) {
   el.className = 'status-chip ' + cls;
 };
 
+function setConnectionButtons(connected) {
+  var loginBtn = document.getElementById('login-btn');
+  var createBtn = document.getElementById('create-user-btn');
+  if (loginBtn) {
+    loginBtn.classList.toggle('connected', connected);
+    loginBtn.textContent = connected ? 'Connected' : 'Login';
+  }
+  if (createBtn) {
+    createBtn.classList.toggle('connected', connected);
+    createBtn.textContent = connected ? 'Connected' : 'Create User';
+  }
+}
+
 window.connectMqtt = async function () {
   // Disconnect existing
   if (AppState.mqttClient) {
@@ -28,8 +41,7 @@ window.connectMqtt = async function () {
 
     AppState.mqttClient.on('connect', function () {
       setStatus('Connected \u2014 waiting for robot...', 'pending');
-      document.getElementById('connect-btn').classList.add('connected');
-      document.getElementById('connect-btn').textContent = 'Connected';
+      setConnectionButtons(true);
 
       unlockNav();
       goToStage('stage-control');
@@ -57,8 +69,7 @@ window.connectMqtt = async function () {
 
     AppState.mqttClient.on('close', function () {
       setStatus('Disconnected', 'err');
-      document.getElementById('connect-btn').classList.remove('connected');
-      document.getElementById('connect-btn').textContent = 'Connect';
+      setConnectionButtons(false);
     });
 
     AppState.mqttClient.on('reconnect', function () {
@@ -70,9 +81,24 @@ window.connectMqtt = async function () {
   }
 };
 
+// ─── MQTT Disconnect ─────────────────────────────────────────────────────────
+
+window.disconnectMqtt = function () {
+  if (AppState.mqttClient) {
+    try {
+      AppState.mqttClient.unsubscribe('robot/status');
+      AppState.mqttClient.unsubscribe('robot/video');
+    } catch (e) {
+      console.error('Error unsubscribing during disconnect:', e);
+    }
+    AppState.mqttClient.end(true);
+    AppState.mqttClient = null;
+  }
+};
+
 // ─── Robot Status Handler ─────────────────────────────────────────────────────
 
-window.handleRobotStatus = async function (payload) {
+window.handleRobotStatus = function (payload) {
   AppState.currentRobotId = payload.robot_id;
   AppState.currentRobotStatus = payload.status;
   AppState.lastRobotHeartbeat = Date.now();
@@ -93,27 +119,10 @@ window.handleRobotStatus = async function (payload) {
 
   if (payload.status === 'online') {
     setStatus('Robot online', 'ok');
-    if (AppState.currentUsername && !AppState.currentSessionData) {
-      await autoCreateSession();
-    }
   } else {
     setStatus('Robot offline', 'err');
   }
-};
 
-// ─── Auto Session Creation ────────────────────────────────────────────────────
-
-window.autoCreateSession = async function () {
-  if (!AppState.currentRobotId || !AppState.currentUsername) return;
-  if (AppState.currentSessionData || AppState.sessionCreating || AppState.sessionManuallyEnded) return;
-  AppState.sessionCreating = true;
-  try {
-    AppState.currentSessionData = await API.createSession(AppState.currentRobotId, AppState.currentUsername);
-    updateSessionInfoBar();
-    setStatus('Session active', 'ok');
-  } catch (err) {
-    setStatus('Session creation failed: ' + err.message, 'err');
-  } finally {
-    AppState.sessionCreating = false;
-  }
+  // Enable/disable record button based on robot status
+  updateRecordButton();
 };

@@ -5,12 +5,13 @@ const { requestLogger, getStats } = require('./logger');
 
 const robotsRouter = require('./routes/robots');
 const sessionsRouter = require('./routes/sessions');
+const usersRouter = require('./routes/users');
 const mqttRouter = require('./routes/mqtt');
 const streamRouter = require('./routes/stream');
 const kvsRouter = require('./routes/kvs');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Log all API requests
 app.use(requestLogger);
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 // API routes
 app.use('/api/robots', robotsRouter);
 app.use('/api/sessions', sessionsRouter);
+app.use('/api/users', usersRouter);
 app.use('/api/mqtt', mqttRouter);
 app.use('/api/stream', streamRouter);
 app.use('/api/kvs', kvsRouter);
