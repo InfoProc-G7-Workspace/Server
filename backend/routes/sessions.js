@@ -8,17 +8,16 @@ const router = express.Router();
 // GET /api/sessions — list sessions (with user isolation)
 router.get('/', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'];
-    const userRole = req.headers['x-user-role'];
+    const { user_id, role } = req.authUser;
 
     const params = { TableName: 'sessions' };
     const filters = [];
     const values = {};
 
     // User isolation: regular users always see only their own sessions
-    if (userRole !== 'admin' && userId) {
+    if (role !== 'admin') {
       filters.push('user_id = :uid');
-      values[':uid'] = userId;
+      values[':uid'] = user_id;
     } else if (req.query.user_id) {
       filters.push('user_id = :uid');
       values[':uid'] = req.query.user_id;
@@ -50,10 +49,8 @@ router.get('/:id', async (req, res) => {
     }));
     if (!result.Item) return res.status(404).json({ error: 'Session not found' });
 
-    // User isolation: non-admin can only view their own sessions
-    const userId = req.headers['x-user-id'];
-    const userRole = req.headers['x-user-role'];
-    if (userRole !== 'admin' && userId && result.Item.user_id !== userId) {
+    const { user_id, role } = req.authUser;
+    if (role !== 'admin' && result.Item.user_id !== user_id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -70,10 +67,10 @@ router.post('/', async (req, res) => {
     const item = {
       session_id: sessionId,
       robot_id: req.body.robot_id,
-      user_id: req.body.user_id,
+      user_id: req.authUser.user_id,
       started_at: new Date().toISOString(),
       ended_at: null,
-      image_s3_prefix: req.body.user_id + '/' + sessionId + '/',
+      image_s3_prefix: req.authUser.user_id + '/' + sessionId + '/',
       scene_id: crypto.randomUUID(),
       scene_s3_key: null,
       scene_status: 'pending',
@@ -89,6 +86,18 @@ router.post('/', async (req, res) => {
 // PUT /api/sessions/:id/end — end a session (signals processor)
 router.put('/:id/end', async (req, res) => {
   try {
+    // Ownership check
+    const result = await ddb.send(new GetCommand({
+      TableName: 'sessions',
+      Key: { session_id: req.params.id },
+    }));
+    if (!result.Item) return res.status(404).json({ error: 'Session not found' });
+
+    const { user_id, role } = req.authUser;
+    if (role !== 'admin' && result.Item.user_id !== user_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     await ddb.send(new UpdateCommand({
       TableName: 'sessions',
       Key: { session_id: req.params.id },

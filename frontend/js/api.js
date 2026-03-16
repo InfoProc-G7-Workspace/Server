@@ -4,41 +4,42 @@
 var API = (function () {
   var BASE = '/api';
 
-  function authHeaders() {
-    var headers = { 'Content-Type': 'application/json' };
-    if (window.AppState && AppState.currentUserId) {
-      headers['x-user-id'] = AppState.currentUserId;
-    }
-    if (window.AppState && AppState.currentUserRole) {
-      headers['x-user-role'] = AppState.currentUserRole;
-    }
-    return headers;
-  }
-
   async function json(url, opts) {
     opts = opts || {};
-    // Merge auth headers into every request
-    opts.headers = Object.assign({}, authHeaders(), opts.headers || {});
+    opts.credentials = 'same-origin';
+    opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
     var res = await fetch(BASE + url, opts);
+    if (res.status === 401) {
+      window.handleSessionExpired && window.handleSessionExpired();
+      throw new Error('Session expired');
+    }
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Request failed');
     return data;
   }
 
   return {
-    // Users
-    login: function (displayName) {
-      return json('/users/login', {
+    // Auth
+    authLogin: function (username) {
+      return json('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ display_name: displayName }),
+        body: JSON.stringify({ username: username }),
       });
     },
-    register: function (displayName) {
-      return json('/users/register', {
+    authRegister: function (username) {
+      return json('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ display_name: displayName }),
+        body: JSON.stringify({ username: username }),
       });
     },
+    authLogout: function () {
+      return json('/auth/logout', { method: 'POST' });
+    },
+    authMe: function () {
+      return json('/auth/me');
+    },
+
+    // Users (admin only)
     listUsers: function () {
       return json('/users');
     },
@@ -47,9 +48,8 @@ var API = (function () {
     },
 
     // MQTT
-    getMqttSignedUrl: function (username) {
-      var qs = username ? '?username=' + encodeURIComponent(username) : '';
-      return json('/mqtt/signed-url' + qs);
+    getMqttSignedUrl: function () {
+      return json('/mqtt/signed-url');
     },
 
     // Robots
@@ -73,10 +73,10 @@ var API = (function () {
     getSession: function (sessionId) {
       return json('/sessions/' + encodeURIComponent(sessionId));
     },
-    createSession: function (robotId, userId) {
+    createSession: function (robotId) {
       return json('/sessions', {
         method: 'POST',
-        body: JSON.stringify({ robot_id: robotId, user_id: userId }),
+        body: JSON.stringify({ robot_id: robotId }),
       });
     },
     endSession: function (sessionId) {
@@ -86,18 +86,18 @@ var API = (function () {
     },
 
     // S3 — images & scenes
-    listSessionImages: function (prefix) {
-      return json('/stream/images?prefix=' + encodeURIComponent(prefix));
+    listSessionImages: function (sessionId) {
+      return json('/stream/images?session_id=' + encodeURIComponent(sessionId));
     },
-    getSceneUrl: function (key) {
-      return json('/stream/scene-url?key=' + encodeURIComponent(key));
+    getSceneUrl: function (sessionId) {
+      return json('/stream/scene-url?session_id=' + encodeURIComponent(sessionId));
     },
 
     // Frame saving during recording
-    saveFrame: function (sessionId, userId, frameData) {
+    saveFrame: function (sessionId, frameData) {
       return json('/stream/save-frame', {
         method: 'POST',
-        body: JSON.stringify({ session_id: sessionId, user_id: userId, frame_data: frameData }),
+        body: JSON.stringify({ session_id: sessionId, frame_data: frameData }),
       });
     },
 

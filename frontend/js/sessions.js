@@ -61,8 +61,7 @@ window.toggleRecording = async function () {
     }
     try {
       AppState.currentSessionData = await API.createSession(
-        AppState.currentRobotId,
-        AppState.currentUserId
+        AppState.currentRobotId
       );
       AppState.isRecording = true;
       AppState.sessionManuallyEnded = false;

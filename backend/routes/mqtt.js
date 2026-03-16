@@ -5,13 +5,11 @@ const { trackConnection } = require('../logger');
 
 const router = express.Router();
 
-// GET /api/mqtt/signed-url?username=xxx — returns a SigV4-signed WSS URL for MQTT over WebSocket
+// GET /api/mqtt/signed-url — returns a SigV4-signed WSS URL for MQTT over WebSocket
 router.get('/signed-url', (req, res) => {
   try {
-    const username = req.query.username || null;
-
-    // Track this connection
-    trackConnection(req, username);
+    // Track this connection using authenticated user
+    trackConnection(req, req.authUser.display_name);
 
     const host = config.iotEndpoint;
     const region = config.awsRegion;

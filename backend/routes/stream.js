@@ -1,18 +1,31 @@
 const express = require('express');
 const { ListObjectsV2Command, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
-const { UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { s3, ddb } = require('../aws');
 const config = require('../config');
 
 const router = express.Router();
 
-// GET /api/stream/images?prefix=xxx — list session images with signed URLs
+// GET /api/stream/images?session_id=xxx — list session images with signed URLs
 router.get('/images', async (req, res) => {
   try {
-    const prefix = req.query.prefix;
-    if (!prefix) return res.status(400).json({ error: 'prefix required' });
+    const sessionId = req.query.session_id;
+    if (!sessionId) return res.status(400).json({ error: 'session_id required' });
 
+    // Fetch session and verify ownership
+    const session = await ddb.send(new GetCommand({
+      TableName: 'sessions',
+      Key: { session_id: sessionId },
+    }));
+    if (!session.Item) return res.status(404).json({ error: 'Session not found' });
+
+    const { user_id, role } = req.authUser;
+    if (role !== 'admin' && session.Item.user_id !== user_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const prefix = session.Item.image_s3_prefix;
     const result = await s3.send(new ListObjectsV2Command({
       Bucket: config.imageBucket,
       Prefix: prefix,
@@ -32,15 +45,31 @@ router.get('/images', async (req, res) => {
   }
 });
 
-// GET /api/stream/scene-url?key=xxx — get signed URL for a 3D scene
+// GET /api/stream/scene-url?session_id=xxx — get signed URL for a 3D scene
 router.get('/scene-url', async (req, res) => {
   try {
-    const key = req.query.key;
-    if (!key) return res.status(400).json({ error: 'key required' });
+    const sessionId = req.query.session_id;
+    if (!sessionId) return res.status(400).json({ error: 'session_id required' });
+
+    // Fetch session and verify ownership
+    const session = await ddb.send(new GetCommand({
+      TableName: 'sessions',
+      Key: { session_id: sessionId },
+    }));
+    if (!session.Item) return res.status(404).json({ error: 'Session not found' });
+
+    const { user_id, role } = req.authUser;
+    if (role !== 'admin' && session.Item.user_id !== user_id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!session.Item.scene_s3_key) {
+      return res.status(404).json({ error: 'Scene not available' });
+    }
 
     const url = await getSignedUrl(s3, new GetObjectCommand({
       Bucket: config.sceneBucket,
-      Key: key,
+      Key: session.Item.scene_s3_key,
     }), { expiresIn: 3600 });
 
     res.json({ url });
@@ -52,9 +81,9 @@ router.get('/scene-url', async (req, res) => {
 // POST /api/stream/save-frame — save a camera frame to S3 during recording
 router.post('/save-frame', async (req, res) => {
   try {
-    const { session_id, user_id, frame_data } = req.body;
-    if (!session_id || !user_id || !frame_data) {
-      return res.status(400).json({ error: 'session_id, user_id, and frame_data required' });
+    const { session_id, frame_data } = req.body;
+    if (!session_id || !frame_data) {
+      return res.status(400).json({ error: 'session_id and frame_data required' });
     }
 
     // Increment image_count and get the new count for the filename
@@ -68,7 +97,8 @@ router.post('/save-frame', async (req, res) => {
 
     const frameNumber = updateResult.Attributes.image_count;
     const paddedNum = String(frameNumber).padStart(6, '0');
-    const key = user_id + '/' + session_id + '/frame_' + paddedNum + '.jpg';
+    // Derive S3 key from authenticated user, not client input
+    const key = req.authUser.user_id + '/' + session_id + '/frame_' + paddedNum + '.jpg';
 
     // Decode base64 and upload to S3
     const buffer = Buffer.from(frame_data, 'base64');

@@ -41,4 +41,8 @@ module.exports = {
 
   // Server
   port: parseInt(keys.PORT, 10) || 3000,
+
+  // Auth
+  adminUsername: keys.ADMIN_USERNAME || 'admin',
+  isProduction: keys.NODE_ENV === 'production',
 };

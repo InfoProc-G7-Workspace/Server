@@ -28,8 +28,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/robots — create a robot
+// POST /api/robots — create a robot (admin only)
 router.post('/', async (req, res) => {
+  if (req.authUser.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin only' });
+  }
   try {
     const item = {
       robot_id: req.body.robot_id,

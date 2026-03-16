@@ -156,6 +156,13 @@ window.logoutUser = async function () {
     }
   }
 
+  // Destroy server-side session
+  try {
+    await API.authLogout();
+  } catch (err) {
+    console.error('Logout API error:', err.message);
+  }
+
   // Stop video stream (resets _videoSubscribed flag)
   stopIoTStream();
 
@@ -214,7 +221,7 @@ window.loginUser = async function () {
   var connectStatus = document.getElementById('connect-status');
 
   if (!username) {
-    connectStatus.textContent = 'Please enter your display name';
+    connectStatus.textContent = 'Please enter a username';
     connectStatus.className = 'connect-status err';
     return;
   }
@@ -223,7 +230,7 @@ window.loginUser = async function () {
   connectStatus.className = 'connect-status pending';
 
   try {
-    var user = await API.login(username);
+    var user = await API.authLogin(username);
     onAuthSuccess(user);
   } catch (err) {
     connectStatus.textContent = err.message || 'Login failed';
@@ -238,7 +245,7 @@ window.createUser = async function () {
   var connectStatus = document.getElementById('connect-status');
 
   if (!username) {
-    connectStatus.textContent = 'Please enter a display name';
+    connectStatus.textContent = 'Please enter a username';
     connectStatus.className = 'connect-status err';
     return;
   }
@@ -247,7 +254,7 @@ window.createUser = async function () {
   connectStatus.className = 'connect-status pending';
 
   try {
-    var user = await API.register(username);
+    var user = await API.authRegister(username);
     onAuthSuccess(user);
   } catch (err) {
     connectStatus.textContent = err.message || 'Registration failed';
@@ -255,9 +262,51 @@ window.createUser = async function () {
   }
 };
 
+// ─── Session Expired Handler ─────────────────────────────────────────────────
+
+window.handleSessionExpired = function () {
+  // Stop video stream
+  stopIoTStream();
+
+  // Disconnect MQTT cleanly
+  disconnectMqtt();
+
+  // Reset AppState
+  AppState.mqttClient = null;
+  AppState.currentRobotId = null;
+  AppState.currentRobotStatus = 'unknown';
+  AppState.lastRobotHeartbeat = null;
+  AppState.currentSessionData = null;
+  AppState.currentUsername = null;
+  AppState.currentUserId = null;
+  AppState.currentUserRole = null;
+  AppState.isRecording = false;
+  AppState.sessionCreating = false;
+  AppState.sessionManuallyEnded = false;
+  AppState.activeKeys = new Set();
+  AppState._videoSubscribed = false;
+  AppState.sessionPollTimer = null;
+  AppState.viewingSessionId = null;
+
+  // Reset UI
+  resetControlStageUI();
+  resetSessionsStageUI();
+
+  // Lock nav and show login form with expired message
+  lockNav();
+  showLoginForm();
+  goToStage('stage-connect');
+
+  var connectStatus = document.getElementById('connect-status');
+  if (connectStatus) {
+    connectStatus.textContent = 'Session expired. Please sign in again.';
+    connectStatus.className = 'connect-status err';
+  }
+};
+
 // ─── DOM Event Bindings ───────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
   document.getElementById('login-btn').addEventListener('click', loginUser);
   document.getElementById('create-user-btn').addEventListener('click', createUser);
   document.getElementById('btn-refresh-sessions').addEventListener('click', refreshSessions);
@@ -285,4 +334,13 @@ document.addEventListener('DOMContentLoaded', function () {
       AppState.viewingSessionId = null;
     }
   });
+
+  // Restore session from cookie on page load
+  try {
+    var user = await API.authMe();
+    onAuthSuccess(user);
+  } catch (e) {
+    // No valid session — show login form
+    showLoginForm();
+  }
 });

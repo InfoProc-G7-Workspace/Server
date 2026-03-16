@@ -28,13 +28,12 @@ window.handleVideoFrame = function (message) {
   }
 
   // Save frame to S3 if recording (throttled to ~15fps)
-  if (AppState.isRecording && AppState.currentSessionData && AppState.currentUserId) {
+  if (AppState.isRecording && AppState.currentSessionData) {
     var now = Date.now();
     if (now - _lastFrameSaveTime >= FRAME_SAVE_INTERVAL_MS) {
       _lastFrameSaveTime = now;
       API.saveFrame(
         AppState.currentSessionData.session_id,
-        AppState.currentUserId,
         base64Data
       ).catch(function (err) {
         console.error('Frame save error:', err.message);

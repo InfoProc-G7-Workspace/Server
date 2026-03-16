@@ -16,3 +16,9 @@ SCENE_BUCKET=robot-3d-scenes-eu-west-2
 
 # ─── Server ────────────────────────────────────────────────
 PORT=3000
+
+# ─── Auth ─────────────────────────────────────────────────
+# User whose display_name matches this gets admin role on registration
+ADMIN_USERNAME=admin
+# Set to "production" on EC2 for secure cookies behind Nginx
+NODE_ENV=development
