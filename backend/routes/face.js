@@ -1,6 +1,6 @@
 const express = require('express');
 const crypto = require('crypto');
-const { ScanCommand, PutCommand, DeleteCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { ScanCommand, PutCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const { PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { ddb, s3 } = require('../aws');
@@ -10,43 +10,9 @@ const { createSession } = require('./auth');
 const router = express.Router();
 const publicRouter = express.Router();
 
-const FLASK_URL = process.env.FLASK_URL || 'http://127.0.0.1:5000';
-const INTERNAL_KEY = process.env.FACE_API_KEY || 'face-internal-secret';
-
 const MATCH_THRESHOLD = 0.5;
 const DUPLICATE_THRESHOLD = 0.75;
 const FACE_BUCKET = config.imageBucket;
-
-// ── Helper: call Flask for ML compute only ──────────────────────────────────
-
-async function callFlask(path, options = {}) {
-  const url = `${FLASK_URL}${path}`;
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Key': INTERNAL_KEY,
-      ...(options.headers || {}),
-    },
-  });
-  if (!res.ok && res.status >= 500) {
-    throw new Error('Face service unavailable');
-  }
-  return res.json();
-}
-
-// ── Helper: detect faces via Flask ──────────────────────────────────────────
-
-async function detectFaces(imageData) {
-  const data = await callFlask('/api/detect', {
-    method: 'POST',
-    body: JSON.stringify({ image: imageData }),
-  });
-  if (!data.ok) {
-    return { ok: false, msg: data.msg || 'Detection failed', timing: data.timing };
-  }
-  return { ok: true, faces: data.faces, timing: data.timing };
-}
 
 // ── Helper: cosine similarity ───────────────────────────────────────────────
 
@@ -166,27 +132,15 @@ async function logFaceLogin(personId, personName, similarity) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // POST /api/auth/face-login
+// Expects { feature: [128-d float array] } from browser FaceEngine
 publicRouter.post('/face-login', async (req, res) => {
   try {
-    const { image } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: 'image required' });
+    const { feature } = req.body;
+    if (!feature || !Array.isArray(feature)) {
+      return res.status(400).json({ error: 'feature array required' });
     }
 
-    // Step 1: detect faces via Flask
-    let detection;
-    try {
-      detection = await detectFaces(image);
-    } catch (err) {
-      return res.status(503).json({ error: 'Face recognition service unavailable' });
-    }
-
-    if (!detection.ok || !detection.faces || detection.faces.length === 0) {
-      return res.status(401).json({ error: detection.msg || 'No face detected' });
-    }
-
-    // Step 2: match the first detected face against DynamoDB
-    const feature = detection.faces[0].feature;
+    // Step 1: match against DynamoDB
     const match = await matchFeature(feature);
 
     if (!match.matched) {
@@ -194,7 +148,7 @@ publicRouter.post('/face-login', async (req, res) => {
       return res.status(401).json({ error: 'Face not recognized', similarity: match.similarity });
     }
 
-    // Step 3: find or create DynamoDB user
+    // Step 2: find or create DynamoDB user
     let user = null;
     if (match.person.user_id) {
       user = await findUserById(match.person.user_id);
@@ -208,12 +162,11 @@ publicRouter.post('/face-login', async (req, res) => {
 
     await logFaceLogin(match.person.person_id, match.person.name, match.similarity);
 
-    // Step 4: create session (same as username login)
+    // Step 3: create session (same as username login)
     const sessionData = await createSession(res, user);
     res.json({
       ...sessionData,
       similarity: match.similarity,
-      timing: detection.timing,
     });
   } catch (err) {
     console.error('Face login error:', err.message);
@@ -226,31 +179,18 @@ publicRouter.post('/face-login', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 // POST /api/face/enroll — admin only
+// Expects { feature: [128-d], name, department?, image? (for photo storage) }
 router.post('/enroll', async (req, res) => {
   if (req.authUser.role !== 'admin') {
     return res.status(403).json({ error: 'Admin only' });
   }
   try {
-    const { image, name, department } = req.body;
-    if (!image || !name) {
-      return res.status(400).json({ error: 'image and name required' });
+    const { feature, name, department, image } = req.body;
+    if (!feature || !Array.isArray(feature) || !name) {
+      return res.status(400).json({ error: 'feature array and name required' });
     }
 
-    // Step 1: detect face via Flask
-    let detection;
-    try {
-      detection = await detectFaces(image);
-    } catch (err) {
-      return res.status(503).json({ error: 'Face service unavailable' });
-    }
-
-    if (!detection.ok || !detection.faces || detection.faces.length === 0) {
-      return res.json({ ok: false, msg: detection.msg || 'No face detected' });
-    }
-
-    const feature = detection.faces[0].feature;
-
-    // Step 2: check for duplicate enrollment
+    // Step 1: check for duplicate enrollment
     const existingPersons = await getAllPersons();
     for (const p of existingPersons) {
       const encoding = JSON.parse(p.encoding);
@@ -263,18 +203,21 @@ router.post('/enroll', async (req, res) => {
       }
     }
 
-    // Step 3: look up DynamoDB user_id for the given name
+    // Step 2: look up DynamoDB user_id for the given name
     let userId = '';
     const existingUser = await findUserByName(name);
     if (existingUser) {
       userId = existingUser.user_id;
     }
 
-    // Step 4: upload photo to S3
+    // Step 3: upload photo to S3 (if image provided)
     const personId = crypto.randomUUID();
-    const photoKey = await uploadFacePhoto(personId, image);
+    let photoKey = '';
+    if (image) {
+      photoKey = await uploadFacePhoto(personId, image);
+    }
 
-    // Step 5: store person in DynamoDB
+    // Step 4: store person in DynamoDB
     await ddb.send(new PutCommand({
       TableName: 'face_persons',
       Item: {
@@ -290,9 +233,9 @@ router.post('/enroll', async (req, res) => {
 
     res.json({
       ok: true,
+      msg: `Enrolled "${name}" successfully`,
       person_id: personId,
       name,
-      timing: detection.timing,
     });
   } catch (err) {
     console.error('Face enroll error:', err.message);
@@ -301,29 +244,18 @@ router.post('/enroll', async (req, res) => {
 });
 
 // POST /api/face/recognize
+// Expects { faces: [{ feature: [128-d], box: [x1,y1,x2,y2] }] } from browser FaceEngine
 router.post('/recognize', async (req, res) => {
   try {
-    const { image } = req.body;
-    if (!image) {
-      return res.status(400).json({ error: 'image required' });
+    const { faces } = req.body;
+    if (!faces || !Array.isArray(faces) || faces.length === 0) {
+      return res.status(400).json({ error: 'faces array required' });
     }
 
-    // Step 1: detect faces via Flask
-    let detection;
-    try {
-      detection = await detectFaces(image);
-    } catch (err) {
-      return res.status(503).json({ error: 'Face service unavailable' });
-    }
-
-    if (!detection.ok || !detection.faces || detection.faces.length === 0) {
-      return res.json({ ok: false, msg: detection.msg || 'No face detected' });
-    }
-
-    // Step 2: match each face against DynamoDB
+    // Match each face against DynamoDB
     const results = [];
-    const labels = [];
-    for (const face of detection.faces) {
+    for (const face of faces) {
+      if (!face.feature || !Array.isArray(face.feature)) continue;
       const match = await matchFeature(face.feature);
       if (match.matched) {
         results.push({
@@ -332,37 +264,12 @@ router.post('/recognize', async (req, res) => {
           person_id: match.person.person_id,
           box: face.box,
         });
-        labels.push({ name: match.person.name, sim: match.similarity });
       } else {
         results.push({ name: null, similarity: match.similarity, box: face.box });
-        labels.push({ name: null, sim: 0 });
       }
     }
 
-    // Step 3: annotate image via Flask
-    let annotated = null;
-    try {
-      const annotateResp = await callFlask('/api/annotate', {
-        method: 'POST',
-        body: JSON.stringify({
-          image,
-          faces: detection.faces,
-          labels,
-        }),
-      });
-      if (annotateResp.ok) {
-        annotated = annotateResp.annotated;
-      }
-    } catch (err) {
-      // Annotation failure is non-critical
-    }
-
-    res.json({
-      ok: true,
-      results,
-      annotated,
-      timing: detection.timing,
-    });
+    res.json({ ok: true, results });
   } catch (err) {
     console.error('Face recognize error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -465,14 +372,5 @@ router.get('/logs', async (req, res) => {
   }
 });
 
-// GET /api/face/pynq-health
-router.get('/pynq-health', async (req, res) => {
-  try {
-    const data = await callFlask('/api/health');
-    res.json(data);
-  } catch (err) {
-    res.json({ ok: false, pynq: false, error: 'Face service unavailable' });
-  }
-});
 
 module.exports = { router, publicRouter };

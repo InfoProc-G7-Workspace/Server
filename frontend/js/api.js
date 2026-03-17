@@ -106,34 +106,23 @@ var API = (function () {
       return json('/kvs/viewer-config?channel=' + encodeURIComponent(channel));
     },
 
-    // Face recognition — local (feature vector from FaceEngine)
-    authFaceLogin: function (feature, imageData) {
-      var body = feature
-        ? { feature: feature }
-        : { image: imageData };
+    // Face recognition — browser FaceEngine extracts features, backend matches
+    authFaceLogin: function (feature) {
       return json('/auth/face-login', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ feature: feature }),
       });
     },
-    faceEnroll: function (featureOrImage, name, department, imageData) {
-      // featureOrImage: Array → local feature; string → legacy image data
-      var body = Array.isArray(featureOrImage)
-        ? { feature: featureOrImage, image: imageData || '', name: name, department: department || '' }
-        : { image: featureOrImage, name: name, department: department || '' };
+    faceEnroll: function (feature, name, department, imageData) {
       return json('/face/enroll', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ feature: feature, name: name, department: department || '', image: imageData || '' }),
       });
     },
-    faceRecognize: function (facesOrImage) {
-      // Array → local faces [{feature,box}]; string → legacy image data
-      var body = Array.isArray(facesOrImage)
-        ? { faces: facesOrImage }
-        : { image: facesOrImage };
+    faceRecognize: function (faces) {
       return json('/face/recognize', {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: JSON.stringify({ faces: faces }),
       });
     },
     faceListPersons: function () {
@@ -144,9 +133,6 @@ var API = (function () {
     },
     faceGetLogs: function () {
       return json('/face/logs');
-    },
-    facePynqHealth: function () {
-      return json('/face/pynq-health');
     },
   };
 })();

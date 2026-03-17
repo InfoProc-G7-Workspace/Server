@@ -215,7 +215,7 @@
         return;
       }
       tbody.innerHTML = data.persons.map(function (p) {
-        return '<tr><td>' + p.id + '</td><td>' + p.name + '</td><td>' + (p.department || '-') +
+        return '<tr><td style="font-size:11px;word-break:break-all">' + p.person_id + '</td><td>' + p.name + '</td><td>' + (p.department || '-') +
           '</td><td>' + (p.created_at || '').slice(0, 10) + '</td></tr>';
       }).join('');
     } catch (e) {
@@ -226,7 +226,7 @@
   window.deleteFacePerson = async function () {
     var input = document.getElementById('fa-del-id');
     var id = input.value.trim();
-    if (!id || isNaN(Number(id))) {
+    if (!id) {
       setFaceStatus('fa-manage-status', 'Enter a valid ID', 'error');
       return;
     }
@@ -252,8 +252,8 @@
         return;
       }
       tbody.innerHTML = data.logs.map(function (l, i) {
-        return '<tr><td>' + (i + 1) + '</td><td>' + l.name + '</td><td>' + l.similarity +
-          '</td><td>' + (l.time || '').replace('T', ' ').slice(0, 19) + '</td></tr>';
+        return '<tr><td>' + (i + 1) + '</td><td>' + (l.person_name || 'Unknown') + '</td><td>' + (l.similarity || 0).toFixed(3) +
+          '</td><td>' + (l.login_time || '').replace('T', ' ').slice(0, 19) + '</td></tr>';
       }).join('');
     } catch (e) {
       tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;padding:16px">Load failed</td></tr>';
