@@ -1,7 +1,7 @@
 const { GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { ddb } = require('../aws');
 
-const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/register', '/api/health'];
+const PUBLIC_PATHS = ['/api/auth/login', '/api/auth/register', '/api/auth/face-login', '/api/health'];
 
 async function requireAuth(req, res, next) {
   if (PUBLIC_PATHS.includes(req.path)) {

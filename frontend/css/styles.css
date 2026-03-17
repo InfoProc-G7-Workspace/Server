@@ -972,3 +972,208 @@ body {
   .session-item__id { font-size: 15px; }
   .session-item__meta { font-size: 13px; }
 }
+
+/* ── Face Login & Admin ───────────────────────────────────── */
+
+/* Divider */
+.face-login-divider {
+  text-align: center;
+  margin: 16px 0 12px;
+  position: relative;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.face-login-divider::before,
+.face-login-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  height: 1px;
+  background: var(--border-glass);
+}
+.face-login-divider::before { left: 0; }
+.face-login-divider::after { right: 0; }
+
+/* Camera box */
+.face-cam-box {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  max-height: 280px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-glass);
+  margin-bottom: 10px;
+}
+.face-cam-box video,
+.face-cam-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.face-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  gap: 8px;
+  font-size: 13px;
+}
+
+/* Button row */
+.face-btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.face-btn-row .btn-ghost,
+.face-btn-row .btn-danger {
+  font-size: 13px;
+  padding: 7px 14px;
+}
+
+/* Upload label */
+.face-upload-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.face-upload-label input {
+  display: none;
+}
+
+/* Face admin tabs */
+.face-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.face-tab-btn {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: 1px solid var(--border-glass);
+  border-bottom: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.face-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+}
+.face-tab-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Tab content */
+.face-tab-content {
+  display: none;
+}
+.face-tab-content.active {
+  display: block;
+}
+
+/* Admin row layout */
+.face-admin-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.face-admin-col {
+  flex: 1;
+  min-width: 260px;
+}
+
+/* Status */
+.face-status {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  white-space: pre-wrap;
+  min-height: 20px;
+}
+.face-status:empty { display: none; }
+.face-status.success {
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.2);
+  color: var(--success);
+}
+.face-status.error {
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.2);
+  color: var(--danger);
+}
+
+/* Table */
+.face-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+}
+.face-table-wrap table { width: 100%; border-collapse: collapse; }
+.face-table-wrap th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-glass);
+}
+.face-table-wrap td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+}
+.face-table-wrap tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* PYNQ status chip */
+.face-pynq-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+}
+
+/* Delete input in manage tab */
+#fa-del-id {
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  min-width: 120px;
+}
+#fa-del-id:focus {
+  border-color: var(--accent-dim);
+}
+
+/* Stage face admin scroll */
+#stage-face-admin .stage-scroll {
+  padding: 16px 16px calc(72px + var(--sab));
+}
+
+@media (min-width: 768px) {
+  #stage-face-admin .stage-scroll {
+    padding: 24px 48px calc(80px + var(--sab));
+  }
+  .face-cam-box {
+    max-height: 320px;
+  }
+}

@@ -1,0 +1,9 @@
+flask
+numpy
+opencv-python-headless
+Pillow
+requests
+# Local fallback dependencies (when PYNQ is unavailable)
+torch
+facenet-pytorch
+onnxruntime

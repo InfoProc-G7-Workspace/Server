@@ -4,6 +4,7 @@ var STAGE_INDEX = {
   'stage-control': 0,
   'stage-sessions': 1,
   'stage-connect': 2,
+  'stage-face-admin': 3,
 };
 
 window.goToStage = function (stageId) {
@@ -186,6 +187,14 @@ window.logoutUser = async function () {
   AppState.sessionPollTimer = null;
   AppState.viewingSessionId = null;
 
+  // Clean up face cameras
+  cleanupFaceCamera();
+  cleanupFaceAdmin();
+
+  // Hide admin nav
+  var adminBtn = document.querySelector('.nav-btn--admin-only');
+  if (adminBtn) adminBtn.style.display = 'none';
+
   // Reset UI
   resetControlStageUI();
   resetSessionsStageUI();
@@ -205,6 +214,12 @@ function onAuthSuccess(user) {
   AppState.sessionManuallyEnded = false;
 
   showLoggedInCard(user.display_name);
+
+  // Show face admin nav for admin users
+  var adminBtn = document.querySelector('.nav-btn--admin-only');
+  if (adminBtn) {
+    adminBtn.style.display = user.role === 'admin' ? '' : 'none';
+  }
 
   // Unlock nav and go to control stage immediately after login
   unlockNav();
@@ -287,6 +302,14 @@ window.handleSessionExpired = function () {
   AppState._videoSubscribed = false;
   AppState.sessionPollTimer = null;
   AppState.viewingSessionId = null;
+
+  // Clean up face cameras
+  cleanupFaceCamera();
+  cleanupFaceAdmin();
+
+  // Hide admin nav
+  var adminBtnExpired = document.querySelector('.nav-btn--admin-only');
+  if (adminBtnExpired) adminBtnExpired.style.display = 'none';
 
   // Reset UI
   resetControlStageUI();

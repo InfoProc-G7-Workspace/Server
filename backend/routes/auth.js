@@ -131,4 +131,4 @@ router.get('/me', (req, res) => {
   res.json(req.authUser);
 });
 
-module.exports = router;
+module.exports = { router, createSession };

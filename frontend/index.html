@@ -65,6 +65,27 @@
       </div>
     </div>
 
+    <!-- Face Login -->
+    <div id="face-login-card" class="glass-card">
+      <div class="face-login-divider"><span>or face recognition</span></div>
+      <div class="face-cam-box" id="face-login-cam-box">
+        <video id="face-login-video" autoplay playsinline style="display:none"></video>
+        <img id="face-login-preview" style="display:none">
+        <div id="face-login-placeholder" class="face-placeholder">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.5-1.632z"/></svg>
+          <span>Capture / Upload</span>
+        </div>
+      </div>
+      <div class="face-btn-row">
+        <button id="face-camera-btn" class="btn-ghost" onclick="startFaceCamera()">Camera</button>
+        <button id="face-capture-btn" class="btn-ghost" onclick="captureFace()" style="display:none">Capture</button>
+        <label id="face-upload-label" class="btn-ghost face-upload-label">Upload<input type="file" accept="image/*" onchange="uploadFacePhoto(event)"></label>
+        <button id="face-reset-btn" class="btn-ghost" onclick="resetFaceCamera()" style="display:none">Retake</button>
+      </div>
+      <button id="face-submit-btn" class="btn-accent full-width" onclick="submitFaceLogin()" style="display:none">Face Login</button>
+      <div id="face-login-status" class="connect-status"></div>
+    </div>
+
     <div id="logged-in-card" class="glass-card hidden">
       <div class="logged-in-info">
         <p class="text-secondary">Logged in as</p>
@@ -161,6 +182,116 @@
   </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════════
+     STAGE 4 — Face Admin (admin only)
+     ════════════════════════════════════════════════════════════ -->
+<div id="stage-face-admin" class="stage">
+  <div class="stage-scroll">
+    <div class="sessions-header">
+      <h2>Face Management</h2>
+      <div id="fa-pynq-status" class="face-pynq-chip"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="face-tabs">
+      <button class="face-tab-btn active" onclick="switchFaceTab('enroll',this)">Enroll</button>
+      <button class="face-tab-btn" onclick="switchFaceTab('recog',this)">Recognize</button>
+      <button class="face-tab-btn" onclick="switchFaceTab('manage',this)">Manage</button>
+      <button class="face-tab-btn" onclick="switchFaceTab('logs',this)">Logs</button>
+    </div>
+
+    <!-- Enroll Tab -->
+    <div id="face-tab-enroll" class="face-tab-content active">
+      <div class="glass-card">
+        <div class="face-admin-row">
+          <div class="face-admin-col">
+            <div class="face-cam-box">
+              <video id="fa-enroll-video" autoplay playsinline style="display:none"></video>
+              <img id="fa-enroll-preview" style="display:none">
+              <div id="fa-enroll-placeholder" class="face-placeholder">Capture / Upload</div>
+            </div>
+            <div class="face-btn-row">
+              <button class="btn-ghost" onclick="startFaceAdminCamera('enroll')">Camera</button>
+              <button id="fa-enroll-cap-btn" class="btn-ghost" onclick="captureFaceAdmin('enroll')" style="display:none">Capture</button>
+              <label class="btn-ghost face-upload-label">Upload<input type="file" accept="image/*" onchange="uploadFaceAdmin(event,'enroll')"></label>
+              <button id="fa-enroll-reset-btn" class="btn-ghost" onclick="resetFaceAdmin('enroll')" style="display:none">Retake</button>
+            </div>
+          </div>
+          <div class="face-admin-col">
+            <div class="config-grid">
+              <input id="fa-enroll-name" placeholder="Name *" class="full-width">
+              <input id="fa-enroll-dept" placeholder="Department (optional)" class="full-width">
+              <button id="fa-enroll-submit" class="btn-accent full-width" onclick="submitFaceEnroll()">Enroll</button>
+            </div>
+            <div id="fa-enroll-status" class="face-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recognize Tab -->
+    <div id="face-tab-recog" class="face-tab-content">
+      <div class="glass-card">
+        <div class="face-admin-row">
+          <div class="face-admin-col">
+            <div class="face-cam-box">
+              <video id="fa-recog-video" autoplay playsinline style="display:none"></video>
+              <img id="fa-recog-preview" style="display:none">
+              <div id="fa-recog-placeholder" class="face-placeholder">Capture / Upload</div>
+            </div>
+            <div class="face-btn-row">
+              <button class="btn-ghost" onclick="startFaceAdminCamera('recog')">Camera</button>
+              <button id="fa-recog-cap-btn" class="btn-ghost" onclick="captureFaceAdmin('recog')" style="display:none">Capture</button>
+              <label class="btn-ghost face-upload-label">Upload<input type="file" accept="image/*" onchange="uploadFaceAdmin(event,'recog')"></label>
+              <button id="fa-recog-reset-btn" class="btn-ghost" onclick="resetFaceAdmin('recog')" style="display:none">Retake</button>
+            </div>
+          </div>
+          <div class="face-admin-col">
+            <button id="fa-recog-submit" class="btn-accent full-width" onclick="submitFaceRecognize()">Recognize</button>
+            <div id="fa-recog-status" class="face-status"></div>
+            <div id="fa-recog-result-box" style="display:none;margin-top:12px">
+              <img id="fa-recog-result-img" style="width:100%;border-radius:12px">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Tab -->
+    <div id="face-tab-manage" class="face-tab-content">
+      <div class="glass-card">
+        <div class="face-table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Department</th><th>Enrolled</th></tr></thead>
+            <tbody id="fa-person-tbody"><tr><td colspan="4" class="text-muted" style="text-align:center;padding:16px">Tap Manage tab to load</td></tr></tbody>
+          </table>
+        </div>
+        <div class="face-btn-row" style="margin-top:12px">
+          <input id="fa-del-id" placeholder="ID to delete" style="flex:1">
+          <button class="btn-danger" onclick="deleteFacePerson()">Delete</button>
+          <button class="btn-ghost" onclick="loadFacePersons()">Refresh</button>
+        </div>
+        <div id="fa-manage-status" class="face-status"></div>
+      </div>
+    </div>
+
+    <!-- Logs Tab -->
+    <div id="face-tab-logs" class="face-tab-content">
+      <div class="glass-card">
+        <div class="face-table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Similarity</th><th>Time</th></tr></thead>
+            <tbody id="fa-log-tbody"><tr><td colspan="4" class="text-muted" style="text-align:center;padding:16px">Tap Logs tab to load</td></tr></tbody>
+          </table>
+        </div>
+        <div class="face-btn-row" style="margin-top:12px">
+          <button class="btn-ghost" onclick="loadFaceLogs()">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Bottom Navigation ── -->
 <nav id="bottom-nav" class="bottom-nav">
   <div class="nav-track">
@@ -176,6 +307,10 @@
     <button class="nav-btn active" data-stage="stage-connect" data-index="2">
       <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span class="nav-label">Settings</span>
+    </button>
+    <button class="nav-btn nav-btn--locked nav-btn--admin-only" data-stage="stage-face-admin" data-index="3" style="display:none">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">Faces</span>
     </button>
   </div>
 </nav>
@@ -211,6 +346,8 @@
 <script src="js/mqtt.js"></script>
 <script src="js/sessions.js"></script>
 <script src="js/controls.js"></script>
+<script src="js/face.js"></script>
+<script src="js/face-admin.js"></script>
 <script src="js/app.js"></script>
 
 </body>

@@ -105,5 +105,37 @@ var API = (function () {
     getKvsViewerConfig: function (channel) {
       return json('/kvs/viewer-config?channel=' + encodeURIComponent(channel));
     },
+
+    // Face recognition
+    authFaceLogin: function (imageData) {
+      return json('/auth/face-login', {
+        method: 'POST',
+        body: JSON.stringify({ image: imageData }),
+      });
+    },
+    faceEnroll: function (imageData, name, department) {
+      return json('/face/enroll', {
+        method: 'POST',
+        body: JSON.stringify({ image: imageData, name: name, department: department || '' }),
+      });
+    },
+    faceRecognize: function (imageData) {
+      return json('/face/recognize', {
+        method: 'POST',
+        body: JSON.stringify({ image: imageData }),
+      });
+    },
+    faceListPersons: function () {
+      return json('/face/persons');
+    },
+    faceDeletePerson: function (personId) {
+      return json('/face/persons/' + encodeURIComponent(personId), { method: 'DELETE' });
+    },
+    faceGetLogs: function () {
+      return json('/face/logs');
+    },
+    facePynqHealth: function () {
+      return json('/face/pynq-health');
+    },
   };
 })();
