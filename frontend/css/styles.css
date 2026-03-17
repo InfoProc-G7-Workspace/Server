@@ -1164,7 +1164,13 @@ body {
   border-color: var(--accent-dim);
 }
 
-/* Stage face admin scroll */
+/* Stage face admin */
+#stage-face-admin {
+  background: url('../bg/bg4.jpg') center/cover no-repeat fixed;
+}
+#stage-face-admin .connect-bg {
+  background: rgba(10, 15, 36, 0.7);
+}
 #stage-face-admin .stage-scroll {
   padding: 16px 16px calc(72px + var(--sab));
 }

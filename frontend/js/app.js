@@ -191,9 +191,11 @@ window.logoutUser = async function () {
   cleanupFaceCamera();
   cleanupFaceAdmin();
 
-  // Hide admin nav
+  // Hide admin nav + reset slider width
   var adminBtn = document.querySelector('.nav-btn--admin-only');
   if (adminBtn) adminBtn.style.display = 'none';
+  var slider = document.getElementById('nav-slider');
+  if (slider) slider.style.width = 'calc(33.333% - 3px)';
 
   // Reset UI
   resetControlStageUI();
@@ -215,10 +217,13 @@ function onAuthSuccess(user) {
 
   showLoggedInCard(user.display_name);
 
-  // Show face admin nav for admin users
+  // Show face admin nav for admin users + adjust slider width
   var adminBtn = document.querySelector('.nav-btn--admin-only');
+  var slider = document.getElementById('nav-slider');
   if (adminBtn) {
-    adminBtn.style.display = user.role === 'admin' ? '' : 'none';
+    var isAdmin = user.role === 'admin';
+    adminBtn.style.display = isAdmin ? '' : 'none';
+    if (slider) slider.style.width = isAdmin ? 'calc(25% - 3px)' : 'calc(33.333% - 3px)';
   }
 
   // Unlock nav and go to control stage immediately after login
@@ -307,9 +312,11 @@ window.handleSessionExpired = function () {
   cleanupFaceCamera();
   cleanupFaceAdmin();
 
-  // Hide admin nav
+  // Hide admin nav + reset slider width
   var adminBtnExpired = document.querySelector('.nav-btn--admin-only');
   if (adminBtnExpired) adminBtnExpired.style.display = 'none';
+  var sliderExpired = document.getElementById('nav-slider');
+  if (sliderExpired) sliderExpired.style.width = 'calc(33.333% - 3px)';
 
   // Reset UI
   resetControlStageUI();
