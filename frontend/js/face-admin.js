@@ -1,4 +1,5 @@
 // ─── Face Admin Panel (enroll, recognize, manage, logs) ──────────────────────
+// Uses FaceEngine for local detection + feature extraction.
 
 (function () {
   var streams = { enroll: null, recog: null };
@@ -106,9 +107,18 @@
 
     var btn = document.getElementById('fa-enroll-submit');
     btn.disabled = true;
-    btn.textContent = 'Enrolling...';
+    btn.textContent = 'Loading models...';
     try {
-      var data = await API.faceEnroll(image, name, dept);
+      await FaceEngine.init();
+      btn.textContent = 'Detecting face...';
+      var faces = await FaceEngine.detectAndExtractFromDataUrl(image);
+      if (!faces.length) {
+        setFaceStatus('fa-enroll-status', 'No face detected', 'error');
+        btn.disabled = false; btn.textContent = 'Enroll'; return;
+      }
+
+      btn.textContent = 'Enrolling...';
+      var data = await API.faceEnroll(faces[0].feature, name, dept, image);
       setFaceStatus('fa-enroll-status', data.msg || 'Enrolled successfully', data.ok ? 'success' : 'error');
       if (data.ok) {
         document.getElementById('fa-enroll-name').value = '';
@@ -130,16 +140,57 @@
 
     var btn = document.getElementById('fa-recog-submit');
     btn.disabled = true;
-    btn.textContent = 'Recognizing...';
+    btn.textContent = 'Loading models...';
     try {
-      var data = await API.faceRecognize(image);
-      if (data.ok) {
-        var timing = data.timing || {};
-        setFaceStatus('fa-recog-status',
-          data.results.join('\n') + '\n' + (timing.backend || '') + ' - ' + (timing.total_ms || 0) + 'ms',
-          'success');
-        var resultImg = document.getElementById('fa-recog-result-img');
-        resultImg.src = data.annotated;
+      await FaceEngine.init();
+      btn.textContent = 'Detecting faces...';
+      var faces = await FaceEngine.detectAndExtractFromDataUrl(image);
+      if (!faces.length) {
+        setFaceStatus('fa-recog-status', 'No face detected', 'error');
+        document.getElementById('fa-recog-result-box').style.display = 'none';
+        btn.disabled = false; btn.textContent = 'Recognize'; return;
+      }
+
+      btn.textContent = 'Matching...';
+      // Send features + boxes to backend
+      var payload = faces.map(function (f) {
+        return { feature: f.feature, box: [f.box.x, f.box.y, f.box.x + f.box.w, f.box.y + f.box.h] };
+      });
+      var data = await API.faceRecognize(payload);
+
+      if (data.ok && data.results) {
+        // Draw annotations locally on a canvas
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.getElementById('fa-recog-result-canvas');
+          if (!canvas) {
+            // Create canvas if first time
+            canvas = document.createElement('canvas');
+            canvas.id = 'fa-recog-result-canvas';
+            canvas.style.width = '100%';
+            canvas.style.borderRadius = '12px';
+            var box = document.getElementById('fa-recog-result-box');
+            box.innerHTML = '';
+            box.appendChild(canvas);
+          }
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          var labels = data.results.map(function (r) {
+            return { name: r.name, similarity: r.similarity };
+          });
+          FaceEngine.drawAnnotations(canvas, faces, labels);
+        };
+        img.src = image;
+
+        var lines = data.results.map(function (r) {
+          return r.name
+            ? r.name + ' (' + (r.similarity || 0).toFixed(3) + ')'
+            : 'Unknown (' + (r.similarity || 0).toFixed(3) + ')';
+        });
+        setFaceStatus('fa-recog-status', lines.join('\n'), 'success');
         document.getElementById('fa-recog-result-box').style.display = 'block';
       } else {
         setFaceStatus('fa-recog-status', data.msg || 'No match', 'error');

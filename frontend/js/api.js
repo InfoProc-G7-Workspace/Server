@@ -106,23 +106,34 @@ var API = (function () {
       return json('/kvs/viewer-config?channel=' + encodeURIComponent(channel));
     },
 
-    // Face recognition
-    authFaceLogin: function (imageData) {
+    // Face recognition — local (feature vector from FaceEngine)
+    authFaceLogin: function (feature, imageData) {
+      var body = feature
+        ? { feature: feature }
+        : { image: imageData };
       return json('/auth/face-login', {
         method: 'POST',
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify(body),
       });
     },
-    faceEnroll: function (imageData, name, department) {
+    faceEnroll: function (featureOrImage, name, department, imageData) {
+      // featureOrImage: Array → local feature; string → legacy image data
+      var body = Array.isArray(featureOrImage)
+        ? { feature: featureOrImage, image: imageData || '', name: name, department: department || '' }
+        : { image: featureOrImage, name: name, department: department || '' };
       return json('/face/enroll', {
         method: 'POST',
-        body: JSON.stringify({ image: imageData, name: name, department: department || '' }),
+        body: JSON.stringify(body),
       });
     },
-    faceRecognize: function (imageData) {
+    faceRecognize: function (facesOrImage) {
+      // Array → local faces [{feature,box}]; string → legacy image data
+      var body = Array.isArray(facesOrImage)
+        ? { faces: facesOrImage }
+        : { image: facesOrImage };
       return json('/face/recognize', {
         method: 'POST',
-        body: JSON.stringify({ image: imageData }),
+        body: JSON.stringify(body),
       });
     },
     faceListPersons: function () {

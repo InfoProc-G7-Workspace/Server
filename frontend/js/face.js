@@ -1,4 +1,4 @@
-// ─── Face Login (camera capture + face recognition) ──────────────────────────
+// ─── Face Login (camera capture + local face recognition via FaceEngine) ─────
 
 (function () {
   var faceStream = null;
@@ -96,12 +96,27 @@
 
     var status = document.getElementById('face-login-status');
     var btn = document.getElementById('face-submit-btn');
-    status.textContent = 'Recognizing...';
-    status.className = 'connect-status pending';
     btn.disabled = true;
 
     try {
-      var user = await API.authFaceLogin(faceCapturedData);
+      // ── Local detection + feature extraction via FaceEngine ──
+      status.textContent = 'Loading models...';
+      status.className = 'connect-status pending';
+      await FaceEngine.init();
+
+      status.textContent = 'Detecting face...';
+      var faces = await FaceEngine.detectAndExtractFromDataUrl(faceCapturedData);
+
+      if (!faces.length) {
+        status.textContent = 'No face detected';
+        status.className = 'connect-status err';
+        btn.disabled = false;
+        return;
+      }
+
+      // ── Send feature vector to backend for matching ──
+      status.textContent = 'Recognizing...';
+      var user = await API.authFaceLogin(faces[0].feature);
       status.textContent = '';
       status.className = 'connect-status';
       cleanupFaceCamera();
