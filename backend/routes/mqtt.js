@@ -1,21 +1,28 @@
 const express = require('express');
 const CryptoJS = require('crypto-js');
 const config = require('../config');
-const { trackConnection } = require('../logger');
+const { trackConnection, createLogger } = require('../logger');
 
 const router = express.Router();
+const log = createLogger('MQTT');
 
 // GET /api/mqtt/signed-url — returns a SigV4-signed WSS URL for MQTT over WebSocket
 router.get('/signed-url', (req, res) => {
   try {
     // Track this connection using authenticated user
     trackConnection(req, req.authUser.display_name);
+    log.info(`Generating MQTT signed URL for user="${req.authUser.display_name}"`);
 
     const host = config.iotEndpoint;
     const region = config.awsRegion;
     const accessKey = config.awsAccessKeyId;
     const secretKey = config.awsSecretAccessKey;
     const service = 'iotdevicegateway';
+
+    if (!host) {
+      log.error('IoT endpoint not configured (IOT_ENDPOINT missing in keys.txt)');
+      return res.status(500).json({ error: 'IoT endpoint not configured' });
+    }
 
     const now = new Date();
     const dateStamp = now.toISOString().replace(/[-:]/g, '').slice(0, 8);
@@ -49,8 +56,10 @@ router.get('/signed-url', (req, res) => {
     const signature = CryptoJS.HmacSHA256(stringToSign, signingKey).toString(CryptoJS.enc.Hex);
     const url = 'wss://' + host + '/mqtt?' + queryString + '&X-Amz-Signature=' + signature;
 
+    log.debug(`MQTT signed URL generated for endpoint=${host}, region=${region}`);
     res.json({ url, endpoint: host, region });
   } catch (err) {
+    log.error('MQTT signed URL generation failed', err);
     res.status(500).json({ error: err.message });
   }
 });

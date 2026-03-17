@@ -2,8 +2,10 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
-const { requestLogger, getStats } = require('./logger');
+const { requestLogger, getStats, createLogger } = require('./logger');
 const requireAuth = require('./middleware/auth');
+
+const log = createLogger('SERVER');
 
 const { router: authRouter } = require('./routes/auth');
 const robotsRouter = require('./routes/robots');
@@ -13,6 +15,8 @@ const mqttRouter = require('./routes/mqtt');
 const streamRouter = require('./routes/stream');
 const kvsRouter = require('./routes/kvs');
 const { router: faceRouter, publicRouter: facePublicRouter } = require('./routes/face');
+
+log.info('All route modules loaded successfully');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -56,6 +60,16 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
 });
 
+// Global error handlers for uncaught exceptions and rejections
+process.on('uncaughtException', (err) => {
+  log.error('UNCAUGHT EXCEPTION — process will exit', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  log.error('UNHANDLED REJECTION', reason instanceof Error ? reason : new Error(String(reason)));
+});
+
 app.listen(config.port, () => {
-  console.log(`[${new Date().toISOString()}] Server running on http://0.0.0.0:${config.port}`);
+  log.info(`Server started on http://0.0.0.0:${config.port} (NODE_ENV=${process.env.NODE_ENV || 'development'}, region=${config.awsRegion})`);
 });

@@ -20,6 +20,33 @@ function ts() {
   return new Date().toISOString();
 }
 
+// ─── Structured logger ───────────────────────────────────────────────────────
+
+const LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'DEBUG'];
+
+function formatLog(level, tag, message, extra) {
+  const base = `[${ts()}] [${level}] [${tag}] ${message}`;
+  if (extra !== undefined) {
+    const detail = extra instanceof Error
+      ? `${extra.message}\n${extra.stack}`
+      : (typeof extra === 'object' ? JSON.stringify(extra) : String(extra));
+    return `${base} | ${detail}`;
+  }
+  return base;
+}
+
+function createLogger(tag) {
+  return {
+    debug(msg, extra) { if (currentLevel <= LOG_LEVELS.DEBUG) console.log(formatLog('DEBUG', tag, msg, extra)); },
+    info(msg, extra)  { if (currentLevel <= LOG_LEVELS.INFO)  console.log(formatLog('INFO',  tag, msg, extra)); },
+    warn(msg, extra)  { if (currentLevel <= LOG_LEVELS.WARN)  console.warn(formatLog('WARN',  tag, msg, extra)); },
+    error(msg, extra) { if (currentLevel <= LOG_LEVELS.ERROR) console.error(formatLog('ERROR', tag, msg, extra)); },
+  };
+}
+
+const reqLog = createLogger('HTTP');
+
 // ─── Request logging middleware ───────────────────────────────────────────────
 
 function requestLogger(req, res, next) {
@@ -30,10 +57,18 @@ function requestLogger(req, res, next) {
   const ip = getClientIp(req);
   const start = Date.now();
 
+  reqLog.debug(`→ ${req.method} ${req.path}`, {
+    ip,
+    query: Object.keys(req.query).length ? req.query : undefined,
+    contentLength: req.headers['content-length'],
+    userAgent: req.headers['user-agent'],
+  });
+
   res.on('finish', () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
-    console.log(`[${ts()}] ${req.method} ${req.path} ${status} ${duration}ms ← ${ip}`);
+    const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info';
+    reqLog[level](`← ${req.method} ${req.path} ${status} ${duration}ms ← ${ip}`);
   });
 
   next();
@@ -107,4 +142,4 @@ function getStats() {
   };
 }
 
-module.exports = { requestLogger, trackConnection, trackApiCall, getStats, getClientIp };
+module.exports = { requestLogger, trackConnection, trackApiCall, getStats, getClientIp, createLogger };

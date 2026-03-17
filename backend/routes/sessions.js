@@ -2,13 +2,16 @@ const express = require('express');
 const crypto = require('crypto');
 const { ScanCommand, PutCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { ddb } = require('../aws');
+const { createLogger } = require('../logger');
 
 const router = express.Router();
+const log = createLogger('SESSIONS');
 
 // GET /api/sessions — list sessions (with user isolation)
 router.get('/', async (req, res) => {
   try {
     const { user_id, role } = req.authUser;
+    log.info(`List sessions: user=${user_id}, role=${role}, filters=${JSON.stringify(req.query)}`);
 
     const params = { TableName: 'sessions' };
     const filters = [];
@@ -34,8 +37,11 @@ router.get('/', async (req, res) => {
     }
 
     const result = await ddb.send(new ScanCommand(params));
-    res.json(result.Items || []);
+    const items = result.Items || [];
+    log.debug(`Returned ${items.length} session(s)`);
+    res.json(items);
   } catch (err) {
+    log.error('List sessions failed', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -43,19 +49,25 @@ router.get('/', async (req, res) => {
 // GET /api/sessions/:id — get session detail (with user isolation)
 router.get('/:id', async (req, res) => {
   try {
+    log.info(`Get session: session_id=${req.params.id}`);
     const result = await ddb.send(new GetCommand({
       TableName: 'sessions',
       Key: { session_id: req.params.id },
     }));
-    if (!result.Item) return res.status(404).json({ error: 'Session not found' });
+    if (!result.Item) {
+      log.warn(`Session not found: session_id=${req.params.id}`);
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
     const { user_id, role } = req.authUser;
     if (role !== 'admin' && result.Item.user_id !== user_id) {
+      log.warn(`Access denied: user=${user_id} tried to access session owned by ${result.Item.user_id}`);
       return res.status(403).json({ error: 'Access denied' });
     }
 
     res.json(result.Item);
   } catch (err) {
+    log.error(`Get session failed: session_id=${req.params.id}`, err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -64,6 +76,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const sessionId = crypto.randomUUID();
+    log.info(`Creating session: session_id=${sessionId}, robot_id=${req.body.robot_id}, user=${req.authUser.display_name}`);
     const item = {
       session_id: sessionId,
       robot_id: req.body.robot_id,
@@ -77,8 +90,10 @@ router.post('/', async (req, res) => {
       image_count: 0,
     };
     await ddb.send(new PutCommand({ TableName: 'sessions', Item: item }));
+    log.info(`Session created: session_id=${sessionId}`);
     res.json(item);
   } catch (err) {
+    log.error('Create session failed', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -86,15 +101,20 @@ router.post('/', async (req, res) => {
 // PUT /api/sessions/:id/end — end a session (signals processor)
 router.put('/:id/end', async (req, res) => {
   try {
+    log.info(`End session: session_id=${req.params.id}`);
     // Ownership check
     const result = await ddb.send(new GetCommand({
       TableName: 'sessions',
       Key: { session_id: req.params.id },
     }));
-    if (!result.Item) return res.status(404).json({ error: 'Session not found' });
+    if (!result.Item) {
+      log.warn(`Session not found: session_id=${req.params.id}`);
+      return res.status(404).json({ error: 'Session not found' });
+    }
 
     const { user_id, role } = req.authUser;
     if (role !== 'admin' && result.Item.user_id !== user_id) {
+      log.warn(`End session denied: user=${user_id} does not own session ${req.params.id}`);
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -107,8 +127,10 @@ router.put('/:id/end', async (req, res) => {
         ':s': 'processing',
       },
     }));
+    log.info(`Session ended: session_id=${req.params.id}, image_count=${result.Item.image_count}`);
     res.json({ ok: true });
   } catch (err) {
+    log.error(`End session failed: session_id=${req.params.id}`, err);
     res.status(500).json({ error: err.message });
   }
 });

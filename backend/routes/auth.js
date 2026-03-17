@@ -3,8 +3,10 @@ const crypto = require('crypto');
 const { PutCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { ddb } = require('../aws');
 const config = require('../config');
+const { createLogger } = require('../logger');
 
 const router = express.Router();
+const log = createLogger('AUTH');
 
 const SESSION_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
@@ -12,6 +14,8 @@ const SESSION_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 async function createSession(res, user) {
   const sessionToken = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
+
+  log.debug(`Creating session for user="${user.display_name}" (${user.user_id}), role=${user.role}`);
 
   await ddb.send(new PutCommand({
     TableName: 'auth_sessions',
@@ -33,6 +37,8 @@ async function createSession(res, user) {
     path: '/',
   });
 
+  log.info(`Session created for user="${user.display_name}", expires in ${SESSION_TTL_SECONDS}s`);
+
   return {
     user_id: user.user_id,
     display_name: user.display_name,
@@ -44,7 +50,9 @@ async function createSession(res, user) {
 router.post('/login', async (req, res) => {
   try {
     const { username } = req.body;
+    log.info(`Login attempt for username="${username}"`);
     if (!username) {
+      log.warn('Login rejected: missing username');
       return res.status(400).json({ error: 'username required' });
     }
 
@@ -56,12 +64,14 @@ router.post('/login', async (req, res) => {
 
     const user = (result.Items || [])[0];
     if (!user) {
+      log.warn(`Login failed: user "${username}" not found in DynamoDB`);
       return res.status(401).json({ error: 'User not found' });
     }
 
+    log.info(`Login successful: user="${username}" (${user.user_id}), role=${user.role}`);
     res.json(await createSession(res, user));
   } catch (err) {
-    console.error('Login error:', err.message);
+    log.error('Login error', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -70,7 +80,9 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { username } = req.body;
+    log.info(`Register attempt for username="${username}"`);
     if (!username) {
+      log.warn('Register rejected: missing username');
       return res.status(400).json({ error: 'username required' });
     }
 
@@ -82,6 +94,7 @@ router.post('/register', async (req, res) => {
     }));
 
     if ((existing.Items || []).length > 0) {
+      log.warn(`Register rejected: user "${username}" already exists`);
       return res.status(409).json({ error: 'User already exists' });
     }
 
@@ -93,10 +106,11 @@ router.post('/register', async (req, res) => {
     };
 
     await ddb.send(new PutCommand({ TableName: 'users', Item: user }));
+    log.info(`User registered: "${username}" (${user.user_id}), role=${user.role}`);
 
     res.json(await createSession(res, user));
   } catch (err) {
-    console.error('Register error:', err.message);
+    log.error('Register error', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -105,11 +119,13 @@ router.post('/register', async (req, res) => {
 router.post('/logout', async (req, res) => {
   try {
     const token = req.cookies && req.cookies.session_token;
+    log.info(`Logout request, hasToken=${!!token}`);
     if (token) {
       await ddb.send(new DeleteCommand({
         TableName: 'auth_sessions',
         Key: { session_token: token },
       }));
+      log.debug('Session deleted from DynamoDB');
     }
 
     res.clearCookie('session_token', {
@@ -119,9 +135,10 @@ router.post('/logout', async (req, res) => {
       path: '/',
     });
 
+    log.info('Logout successful');
     res.json({ ok: true });
   } catch (err) {
-    console.error('Logout error:', err.message);
+    log.error('Logout error', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
