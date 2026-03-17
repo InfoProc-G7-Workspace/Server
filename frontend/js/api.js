@@ -9,7 +9,7 @@ var API = (function () {
     opts.credentials = 'same-origin';
     opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
     var res = await fetch(BASE + url, opts);
-    if (res.status === 401) {
+    if (res.status === 401 && !url.startsWith('/auth/login') && !url.startsWith('/auth/register')) {
       window.handleSessionExpired && window.handleSessionExpired();
       throw new Error('Session expired');
     }
