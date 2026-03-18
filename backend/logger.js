@@ -23,7 +23,7 @@ function ts() {
 // ─── Structured logger ───────────────────────────────────────────────────────
 
 const LOG_LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
-const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'DEBUG'];
+const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'ERROR'];
 
 function formatLog(level, tag, message, extra) {
   const base = `[${ts()}] [${level}] [${tag}] ${message}`;
@@ -97,7 +97,9 @@ function trackConnection(req, username) {
     });
   }
 
-  console.log(`[${now}] CONNECT ${ip}${username ? ' (' + username + ')' : ''} — total active: ${getActiveCount()}`);
+  if (currentLevel < LOG_LEVELS.OFF) {
+    console.log(`[${now}] CONNECT ${ip}${username ? ' (' + username + ')' : ''} — total active: ${getActiveCount()}`);
+  }
 }
 
 function trackApiCall(req) {
