@@ -134,5 +134,25 @@
       faceStream = null;
     }
     faceCapturedData = null;
+
+    // Reset UI to initial state
+    var preview = document.getElementById('face-login-preview');
+    if (preview) { preview.src = ''; preview.style.display = 'none'; }
+    var video = document.getElementById('face-login-video');
+    if (video) { video.srcObject = null; video.style.display = 'none'; }
+    var placeholder = document.getElementById('face-login-placeholder');
+    if (placeholder) placeholder.style.display = '';
+    var cameraBtn = document.getElementById('face-camera-btn');
+    if (cameraBtn) cameraBtn.style.display = '';
+    var uploadLabel = document.getElementById('face-upload-label');
+    if (uploadLabel) uploadLabel.style.display = '';
+    var captureBtn = document.getElementById('face-capture-btn');
+    if (captureBtn) captureBtn.style.display = 'none';
+    var resetBtn = document.getElementById('face-reset-btn');
+    if (resetBtn) resetBtn.style.display = 'none';
+    var submitBtn = document.getElementById('face-submit-btn');
+    if (submitBtn) submitBtn.style.display = 'none';
+    var status = document.getElementById('face-login-status');
+    if (status) { status.textContent = ''; status.className = 'connect-status'; }
   };
 })();
