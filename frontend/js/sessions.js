@@ -147,7 +147,7 @@ window.viewSessionDetail = async function (sessionId) {
     // Build scene section based on status
     var sceneSection = '';
     if (session.scene_status === 'complete' && session.scene_id) {
-      var viewerUrl = VIEWER_BASE_URL + '/' + session.scene_id;
+      var viewerUrl = session.viewer_url || (VIEWER_BASE_URL + '/' + session.scene_id);
       sceneSection = ''
         + '<p><strong>Scene:</strong> <span class="badge badge-complete">complete</span></p>'
         + '<div class="gaussian-viewer">'
