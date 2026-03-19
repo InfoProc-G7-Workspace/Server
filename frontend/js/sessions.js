@@ -28,53 +28,6 @@ window.updateSessionInfoBar = function () {
   }
 };
 
-// ─── Record Button Logic ──────────────────────────────────────────────────────
-
-window.updateRecordButton = function () {
-  var btn = document.getElementById('btn-record');
-  if (!btn) return;
-  btn.disabled = !(AppState.currentRobotId && AppState.currentRobotStatus === 'online');
-};
-
-window.toggleRecording = async function () {
-  var btn = document.getElementById('btn-record');
-  var label = document.getElementById('record-label');
-
-  if (AppState.isRecording && AppState.currentSessionData) {
-    // STOP recording
-    try {
-      await API.endSession(AppState.currentSessionData.session_id);
-      btn.classList.remove('recording');
-      label.textContent = 'Record';
-      AppState.isRecording = false;
-      AppState.currentSessionData = null;
-      setStatus('Recording stopped \u2014 processing...', 'ok');
-      updateSessionInfoBar();
-    } catch (err) {
-      setStatus('Failed to stop recording: ' + err.message, 'err');
-    }
-  } else {
-    // START recording
-    if (!AppState.currentRobotId || !AppState.currentUserId) {
-      setStatus('No robot connected', 'err');
-      return;
-    }
-    try {
-      AppState.currentSessionData = await API.createSession(
-        AppState.currentRobotId
-      );
-      AppState.isRecording = true;
-      AppState.sessionManuallyEnded = false;
-      btn.classList.add('recording');
-      label.textContent = 'Stop';
-      setStatus('Recording...', 'ok');
-      updateSessionInfoBar();
-    } catch (err) {
-      setStatus('Failed to start recording: ' + err.message, 'err');
-    }
-  }
-};
-
 // ─── Session List ─────────────────────────────────────────────────────────────
 
 window.refreshSessions = async function () {
@@ -121,7 +74,7 @@ window.refreshSessions = async function () {
         + '<div class="session-item-wrapper" data-session-id="' + safeId + '">'
         + '<div class="session-item' + (isActive ? ' session-item--active' : '') + '">'
         + '  <div class="session-item__info">'
-        + '    <div class="session-item__id">' + shortId + '...</div>'
+        + '    <div class="session-item__id">' + (s.scene_name ? escapeHtml(s.scene_name) : shortId + '...') + '</div>'
         + '    <div class="session-item__meta">' + date + ' &middot; ' + displayName + ' &middot; ' + ended + '</div>'
         + '  </div>'
         + '  <div class="session-item__actions">'
@@ -146,19 +99,33 @@ window.refreshSessions = async function () {
 
 // ─── Session Detail + Gaussian Viewer ─────────────────────────────────────────
 
+function collapseDetail(el, callback) {
+  el.classList.remove('expanded');
+  var handler = function () {
+    el.removeEventListener('transitionend', handler);
+    el.innerHTML = '';
+    if (callback) callback();
+  };
+  el.addEventListener('transitionend', handler);
+  // Fallback in case transitionend doesn't fire
+  setTimeout(function () {
+    el.removeEventListener('transitionend', handler);
+    el.innerHTML = '';
+    if (callback) callback();
+  }, 400);
+}
+
 window.viewSessionDetail = async function (sessionId) {
   // Collapse previously expanded detail
   var previouslyOpen = document.querySelector('.session-inline-detail.expanded');
   if (previouslyOpen) {
     if (previouslyOpen.id === 'detail-' + sessionId) {
       // Toggle closed if clicking same session
-      previouslyOpen.classList.remove('expanded');
-      previouslyOpen.innerHTML = '';
+      collapseDetail(previouslyOpen);
       AppState.viewingSessionId = null;
       return;
     }
-    previouslyOpen.classList.remove('expanded');
-    previouslyOpen.innerHTML = '';
+    collapseDetail(previouslyOpen);
   }
 
   AppState.viewingSessionId = sessionId;
@@ -199,6 +166,7 @@ window.viewSessionDetail = async function (sessionId) {
     detailEl.innerHTML = ''
       + '<div class="session-detail__card">'
       + '  <h4>Session Details</h4>'
+      + '  <p><strong>Scene Name:</strong> ' + escapeHtml(session.scene_name || 'N/A') + '</p>'
       + '  <p><strong>ID:</strong> ' + escapeHtml(session.session_id) + '</p>'
       + '  <p><strong>Robot:</strong> ' + escapeHtml(session.robot_id) + '</p>'
       + '  <p><strong>User:</strong> ' + displayName + '</p>'

@@ -55,6 +55,13 @@ window.connectMqtt = async function () {
         handleVideoFrame(message);
         return;
       }
+      if (topic === 'robot/scan/status') {
+        try {
+          var payload = JSON.parse(message.toString());
+          handleScanStatus(payload);
+        } catch (e) {}
+        return;
+      }
       try {
         var payload = JSON.parse(message.toString());
         if (topic === 'robot/status') handleRobotStatus(payload);
@@ -123,6 +130,6 @@ window.handleRobotStatus = function (payload) {
     setStatus('Robot offline', 'err');
   }
 
-  // Enable/disable record button based on robot status
-  updateRecordButton();
+  // Enable/disable scan button based on robot status
+  updateScanButton();
 };

@@ -85,9 +85,13 @@ router.post('/', async (req, res) => {
       ended_at: null,
       image_s3_prefix: req.authUser.user_id + '/' + sessionId + '/',
       scene_id: crypto.randomUUID(),
+      scene_name: req.body.scene_name || '',
       scene_s3_key: null,
       scene_status: 'pending',
       image_count: 0,
+      total_images: req.body.total_images || 0,
+      image_interval: req.body.image_interval || 0,
+      scan_mode: !!req.body.scan_mode,
     };
     await ddb.send(new PutCommand({ TableName: 'sessions', Item: item }));
     log.info(`Session created: session_id=${sessionId}`);

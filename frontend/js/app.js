@@ -122,13 +122,14 @@ function resetControlStageUI() {
   var infoSession = document.getElementById('info-session');
   if (infoSession) infoSession.textContent = '--';
 
-  var recordBtn = document.getElementById('btn-record');
-  if (recordBtn) {
-    recordBtn.classList.remove('recording');
-    recordBtn.disabled = true;
-  }
-  var recordLabel = document.getElementById('record-label');
-  if (recordLabel) recordLabel.textContent = 'Record';
+  // Reset scan UI
+  var scanBtn = document.getElementById('btn-scan');
+  if (scanBtn) { scanBtn.classList.remove('scanning'); scanBtn.disabled = true; }
+  var mobileBtn = document.getElementById('btn-scan-mobile');
+  if (mobileBtn) mobileBtn.classList.remove('scanning');
+  var scanPanel = document.getElementById('scan-panel');
+  if (scanPanel) scanPanel.classList.add('hidden');
+  if (typeof resetScanUI === 'function') resetScanUI();
 
   var lastCmd = document.getElementById('last-cmd');
   if (lastCmd) lastCmd.textContent = 'Tap a button to send a command';
@@ -148,15 +149,6 @@ function resetControlStageUI() {
 // ─── Logout ──────────────────────────────────────────────────────────────────
 
 window.logoutUser = async function () {
-  // End active recording if exists
-  if (AppState.isRecording && AppState.currentSessionData) {
-    try {
-      await API.endSession(AppState.currentSessionData.session_id);
-    } catch (err) {
-      console.error('Failed to end session during logout:', err.message);
-    }
-  }
-
   // Destroy server-side session
   try {
     await API.authLogout();
@@ -179,9 +171,7 @@ window.logoutUser = async function () {
   AppState.currentUsername = null;
   AppState.currentUserId = null;
   AppState.currentUserRole = null;
-  AppState.isRecording = false;
-  AppState.sessionCreating = false;
-  AppState.sessionManuallyEnded = false;
+  AppState.isScanning = false;
   AppState.activeKeys = new Set();
   AppState._videoSubscribed = false;
   AppState.sessionPollTimer = null;
@@ -300,9 +290,7 @@ window.handleSessionExpired = function () {
   AppState.currentUsername = null;
   AppState.currentUserId = null;
   AppState.currentUserRole = null;
-  AppState.isRecording = false;
-  AppState.sessionCreating = false;
-  AppState.sessionManuallyEnded = false;
+  AppState.isScanning = false;
   AppState.activeKeys = new Set();
   AppState._videoSubscribed = false;
   AppState.sessionPollTimer = null;
@@ -341,7 +329,9 @@ document.addEventListener('DOMContentLoaded', async function () {
   document.getElementById('create-user-btn').addEventListener('click', createUser);
   document.getElementById('btn-refresh-sessions').addEventListener('click', refreshSessions);
   document.getElementById('btn-end-session').addEventListener('click', endCurrentSession);
-  document.getElementById('btn-record').addEventListener('click', toggleRecording);
+  document.getElementById('btn-scan').addEventListener('click', toggleScanPanel);
+  document.getElementById('btn-start-scan').addEventListener('click', startScan);
+  document.getElementById('btn-scan-mobile').addEventListener('click', startScan);
   document.getElementById('logout-btn').addEventListener('click', logoutUser);
 
   document.querySelectorAll('.nav-btn').forEach(function (btn) {
@@ -358,8 +348,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (target.dataset.closeDetail) {
       var wrapper = target.closest('.session-inline-detail');
       if (wrapper) {
-        wrapper.classList.remove('expanded');
-        wrapper.innerHTML = '';
+        collapseDetail(wrapper);
       }
       AppState.viewingSessionId = null;
     }

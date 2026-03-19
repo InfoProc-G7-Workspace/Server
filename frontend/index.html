@@ -10,25 +10,28 @@
 </head>
 <body>
 
+<!-- ── Global Background (particles + glows on all pages) ── -->
+<div id="global-bg" class="global-bg" aria-hidden="true">
+  <div class="bg-glow bg-glow--cyan"></div>
+  <div class="bg-glow bg-glow--purple"></div>
+  <div class="bg-glow bg-glow--blue"></div>
+  <div class="bg-particles">
+    <span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span>
+    <span class="particle"></span><span class="particle"></span>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════════════
      STAGE 1 — Connect
      ════════════════════════════════════════════════════════════ -->
 <div id="stage-connect" class="stage active">
-  <!-- Background graphic -->
+  <!-- Background graphic (grid + robot silhouette, connect-only) -->
   <div class="connect-bg" aria-hidden="true">
-    <div class="bg-glow bg-glow--cyan"></div>
-    <div class="bg-glow bg-glow--purple"></div>
-    <div class="bg-glow bg-glow--blue"></div>
     <div class="bg-grid"></div>
-    <div class="bg-particles">
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-    </div>
-    <!-- Robot silhouette SVG -->
     <svg class="bg-robot" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="60" y="10" width="80" height="60" rx="20" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.15)" stroke-width="1.5"/>
       <rect x="78" y="30" width="16" height="8" rx="4" fill="rgba(0,212,255,0.35)"/>
@@ -55,6 +58,14 @@
     <div class="connect-header">
       <h1>Robot Controller</h1>
       <p id="connect-subtitle" class="text-secondary">Enter your display name to get started</p>
+    </div>
+
+    <div id="logged-in-card" class="glass-card hidden">
+      <div class="logged-in-info">
+        <p class="text-secondary">Logged in as</p>
+        <p id="logged-in-username" class="logged-in-name">--</p>
+      </div>
+      <button id="logout-btn" class="btn-danger full-width">Logout</button>
     </div>
 
     <div id="login-card" class="glass-card">
@@ -84,14 +95,6 @@
       </div>
       <button id="face-submit-btn" class="btn-accent full-width" onclick="submitFaceLogin()" style="display:none">Face Login</button>
       <div id="face-login-status" class="connect-status"></div>
-    </div>
-
-    <div id="logged-in-card" class="glass-card hidden">
-      <div class="logged-in-info">
-        <p class="text-secondary">Logged in as</p>
-        <p id="logged-in-username" class="logged-in-name">--</p>
-      </div>
-      <button id="logout-btn" class="btn-danger full-width">Logout</button>
     </div>
 
     <div id="connect-status" class="connect-status"></div>
@@ -126,12 +129,31 @@
     </div>
   </div>
 
-  <!-- Recording control -->
-  <div class="record-area">
-    <button id="btn-record" class="btn-record" disabled>
+  <!-- Scan controls -->
+  <div class="scan-area">
+    <button id="btn-scan" class="btn-scan" disabled>
       <span class="record-dot"></span>
-      <span id="record-label">Record</span>
+      <span id="scan-label">Scan</span>
     </button>
+  </div>
+
+  <div id="scan-panel" class="scan-panel">
+    <div id="scan-form" class="scan-form">
+      <input id="scan-scene-name" class="scan-input" placeholder="Scene name" autocomplete="off">
+      <div class="scan-field-row">
+        <label class="scan-field-label" for="scan-total-images">Images</label>
+        <input id="scan-total-images" class="scan-input scan-input--short" type="number" min="1" max="500" value="20">
+        <label class="scan-field-label" for="scan-interval">Interval (s)</label>
+        <input id="scan-interval" class="scan-input scan-input--short" type="number" min="1" max="120" value="5">
+      </div>
+      <button id="btn-start-scan" class="btn-accent scan-start-btn">Start Scan</button>
+    </div>
+    <div id="scan-progress" class="scan-progress hidden">
+      <div class="scan-progress-bar">
+        <div id="scan-progress-fill" class="scan-progress-fill" style="width:0%"></div>
+      </div>
+      <span id="scan-progress-text">0 / 0</span>
+    </div>
   </div>
 
   <!-- Video feed -->
@@ -146,6 +168,7 @@
   <!-- D-Pad controls -->
   <div class="controls-area">
     <div class="side-controls">
+      <button id="btn-scan-mobile" class="side-btn scan-side-btn" disabled title="Scan">&#9673;</button>
       <button class="side-btn" data-action="rotate_ccw" title="Rotate CCW">&#8634;</button>
     </div>
     <div class="dpad-ring">
@@ -160,7 +183,7 @@
     </div>
   </div>
 
-  <div id="last-cmd" class="last-cmd">Tap a button to send a command</div>
+  <div id="last-cmd" class="last-cmd">WASD to control the robot</div>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════
@@ -186,19 +209,6 @@
      STAGE 4 — Face Admin (admin only)
      ════════════════════════════════════════════════════════════ -->
 <div id="stage-face-admin" class="stage">
-  <div class="connect-bg" aria-hidden="true">
-    <div class="bg-glow bg-glow--cyan"></div>
-    <div class="bg-glow bg-glow--purple"></div>
-    <div class="bg-glow bg-glow--blue"></div>
-    <div class="bg-particles">
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-      <span class="particle"></span><span class="particle"></span>
-    </div>
-  </div>
   <div class="stage-scroll">
     <div class="sessions-header">
       <h2>Face Management</h2>
@@ -345,9 +355,7 @@
     currentUsername: null,
     currentUserId: null,
     currentUserRole: null,
-    isRecording: false,
-    sessionCreating: false,
-    sessionManuallyEnded: false,
+    isScanning: false,
     activeKeys: new Set(),
     sessionPollTimer: null,
     viewingSessionId: null,
@@ -357,6 +365,7 @@
 <!-- ── App Scripts ── -->
 <script src="js/api.js"></script>
 <script src="js/stream.js"></script>
+<script src="js/scan.js"></script>
 <script src="js/mqtt.js"></script>
 <script src="js/sessions.js"></script>
 <script src="js/controls.js"></script>

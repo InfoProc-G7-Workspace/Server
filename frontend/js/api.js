@@ -73,10 +73,17 @@ var API = (function () {
     getSession: function (sessionId) {
       return json('/sessions/' + encodeURIComponent(sessionId));
     },
-    createSession: function (robotId) {
+    createSession: function (robotId, opts) {
+      opts = opts || {};
       return json('/sessions', {
         method: 'POST',
-        body: JSON.stringify({ robot_id: robotId }),
+        body: JSON.stringify({
+          robot_id: robotId,
+          scene_name: opts.scene_name || '',
+          total_images: opts.total_images || 0,
+          image_interval: opts.image_interval || 0,
+          scan_mode: !!opts.scan_mode,
+        }),
       });
     },
     endSession: function (sessionId) {
@@ -91,14 +98,6 @@ var API = (function () {
     },
     getSceneUrl: function (sessionId) {
       return json('/stream/scene-url?session_id=' + encodeURIComponent(sessionId));
-    },
-
-    // Frame saving during recording
-    saveFrame: function (sessionId, frameData) {
-      return json('/stream/save-frame', {
-        method: 'POST',
-        body: JSON.stringify({ session_id: sessionId, frame_data: frameData }),
-      });
     },
 
     // KVS
